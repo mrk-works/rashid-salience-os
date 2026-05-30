@@ -45,9 +45,18 @@ with st.sidebar:
     gemini_api_key = st.text_input("Gemini API Key (Flash 2.5)", type="password")
     
     st.divider()
-    specialty_profile = st.selectbox(
+specialty_profile = st.selectbox(
         "Clinical Specialty Model Vector", 
-        ["Cardiology Clinic", "General Internal Medicine", "Emergency Trauma"]
+        [
+            "Cardiology Clinic", 
+            "General Internal Medicine", 
+            "Emergency Trauma",
+            "Neurology",
+            "Pediatrics",
+            "Orthopedic Surgery",
+            "Psychiatry & Behavioral Health",
+            "Oncology"
+        ]
     )
     target_language = st.selectbox(
         "Ingestion Acoustic Matrix (20+ Languages)", 
