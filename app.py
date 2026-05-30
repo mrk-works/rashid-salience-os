@@ -21,7 +21,7 @@ from pydub import AudioSegment
 # =====================================================================
 # 1. SESSION STATE INITIALIZATION
 # =====================================================================
-st.set_page_config(page_title="Rashid Clinical Salience OS", layout="wide")
+st.set_page_config(page_title="Salience OS", layout="wide")
 
 if "transcript" not in st.session_state:
     st.session_state.transcript = ""
@@ -36,7 +36,7 @@ if "transcript" not in st.session_state:
 # =====================================================================
 # 2. UI HEADER & SIDEBAR CONFIGURATION
 # =====================================================================
-st.title("Rashid Clinical Salience OS")
+st.title("Salience OS")
 st.markdown("### Architecture 2.0: Multi-Modal Context Engine")
 
 with st.sidebar:
@@ -57,8 +57,7 @@ with st.sidebar:
             "Psychiatry & Behavioral Health",
             "Oncology"
         ]
-)
-
+    )
     target_language = st.selectbox(
         "Ingestion Acoustic Matrix (20+ Languages)", 
         ["Mixed (Multi-lingual Code-Switching)", "English (US/UK)", "Arabic (Khaleeji/MSA)"]
@@ -101,7 +100,6 @@ with col_capture:
                 f.write(audio_file.read())
             has_valid_audio_payload = True
     else:
-        # UPGRADED: File uploader now naturally reads .json dataset strings!
         uploaded_file = st.file_uploader("Upload raw file or ChatDoctor dataset (.wav, .mp3, .m4a, .json):", type=["wav", "mp3", "m4a", "json"])
         if uploaded_file is not None:
             if uploaded_file.name.endswith('.json'):
@@ -112,7 +110,6 @@ with col_capture:
                         case_idx = st.number_input("🔍 Select Case Index to Extract:", min_value=0, max_value=len(json_data)-1, value=0)
                         
                         selected_node = json_data[case_idx]
-                        # Capture conversation source structure ("input" or fallback to "instruction")
                         injected_text_payload = selected_node.get("input", selected_node.get("instruction", ""))
                         
                         st.markdown("**Preview Ingested Patient Symptoms:**")
@@ -126,7 +123,6 @@ with col_capture:
                 except Exception as json_err:
                     st.error(f"🛑 JSON Analysis Failed: {json_err}")
             else:
-                # Normal audio stream routing
                 with open(temp_audio_filename, "wb") as f:
                     f.write(uploaded_file.getbuffer())
                 st.audio(temp_audio_filename)
@@ -187,7 +183,7 @@ with col_pipeline:
                                     model="whisper-large-v3",
                                     response_format="text"
                                 )
-                            
+                                
                             if os.path.exists(temp_audio_filename): os.remove(temp_audio_filename)
                             if os.path.exists(compressed_filename): os.remove(compressed_filename)
                                 
@@ -198,7 +194,7 @@ with col_pipeline:
                         intelligence_engine = genai.GenerativeModel('gemini-2.5-flash')
                         
                         system_prompt = f"""
-                        You are the core analytical pipeline of Rashid Clinical Salience OS, configured for the specialty: {specialty_profile}.
+                        You are the core analytical pipeline of Salience OS, configured for the specialty: {specialty_profile}.
                         The incoming data stream was ingested with an expected localization matrix profile of: {target_language}.
                         
                         RAW INPUT DATA TRANSCRIPT:
@@ -256,7 +252,7 @@ if st.session_state.transcript:
         st.markdown("#### Patient Clinical Record (EHR Target)")
         st.markdown(f"""
         <div style="background-color: #FFFFFF; padding: 30px; border-radius: 12px; border: 1px solid #E2E8F0; color: #0F172A; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;">
-            <h2 style="color: #0284C7; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px; margin-top: 0;">Rashid Standardized Clinical Note</h2>
+            <h2 style="color: #0284C7; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px; margin-top: 0;">Salience Standardized Clinical Note</h2>
             {st.session_state.soap_note}
         </div>
         """, unsafe_allow_html=True)
