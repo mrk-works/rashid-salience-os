@@ -41,9 +41,31 @@ st.markdown("### Architecture 2.0: Multi-Modal Context Engine")
 
 with st.sidebar:
     st.header("⚙️ Configuration Layer")
-    groq_api_key = st.text_input("Groq API Key (Whisper v3)", type="password")
-    gemini_api_key = st.text_input("Gemini API Key (Flash 2.5)", type="password")
     
+    # Check if the Cloud Secrets vault contains keys
+    has_cloud_groq = "groq_api_key" in st.secrets
+    has_cloud_gemini = "gemini_api_key" in st.secrets
+    
+    # Render the input fields with smart placeholders telling them keys are pre-loaded
+    groq_input = st.text_input(
+        "Groq API Key (Whisper v3)", 
+        type="password",
+        placeholder="🔒 Active via Cloud Secrets" if has_cloud_groq else "Enter Groq Key..."
+    )
+    gemini_input = st.text_input(
+        "Gemini API Key (Flash 2.5)", 
+        type="password",
+        placeholder="🔒 Active via Cloud Secrets" if has_cloud_gemini else "Enter Gemini Key..."
+    )
+    
+    # RESOLUTION MATRIX: Sidebar override takes precedence. If blank, pull from backend Secrets.
+    groq_api_key = groq_input if groq_input.strip() else st.secrets.get("groq_api_key", "")
+    gemini_api_key = gemini_input if gemini_input.strip() else st.secrets.get("gemini_api_key", "")
+    
+    # Professional UX status indicator for your mentors
+    if (has_cloud_groq or has_cloud_gemini) and not (groq_input or gemini_input):
+        st.info("💡 **Vault Uplink Active:** System keys are securely running in the background. Feel free to leave these fields blank to run tests immediately!")
+        
     st.divider()
     specialty_profile = st.selectbox(
         "Clinical Specialty Model Vector", 
