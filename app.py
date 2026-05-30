@@ -57,7 +57,7 @@ specialty_profile = st.selectbox(
             "Psychiatry & Behavioral Health",
             "Oncology"
         ]
-    )
+)
     target_language = st.selectbox(
         "Ingestion Acoustic Matrix (20+ Languages)", 
         ["Mixed (Multi-lingual Code-Switching)", "English (US/UK)", "Arabic (Khaleeji/MSA)"]
