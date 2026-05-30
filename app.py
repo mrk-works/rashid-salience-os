@@ -1,3 +1,13 @@
+# SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub stability
+import sys
+try:
+    import audioop
+except ImportError:
+    try:
+        import audioop_lts as audioop
+        sys.modules['audioop'] = audioop
+    except ImportError:
+        pass
 import streamlit as st
 import os
 import json
