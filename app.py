@@ -17,6 +17,68 @@ from groq import Groq
 import google.generativeai as genai
 import pandas as pd
 from pydub import AudioSegment
+from fpdf import FPDF  # Added for native PDF compilation
+
+# =====================================================================
+# 0. HELPER FUNCTION: MARKDOWN TO PROFESSIONAL MEDICAL PDF CORRECTION
+# =====================================================================
+def generate_clinical_pdf(soap_text, specialty):
+    """
+    Parses structural markdown text streams and renders an elegant,
+    high-contrast medical PDF chart ready for administrative print.
+    """
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Header Banner Block
+    pdf.set_fill_color(2, 132, 199) # Premium Clinical Blue Theme
+    pdf.rect(0, 0, 210, 38, 'F')
+    
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 18)
+    pdf.cell(0, 12, "SALIENCE OS • CLINICAL NOTE MATRIX", ln=True, align="C")
+    
+    pdf.set_font("Helvetica", "I", 10)
+    pdf.cell(0, 5, f"Specialty Vector Profile: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+    pdf.ln(15)
+    
+    # Body Parameters Reset
+    pdf.set_text_color(15, 23, 42) # Slate-900 Dark Neutral
+    
+    # Sequential structural line reading loop
+    for line in soap_text.split("\n"):
+        line_clean = line.strip()
+        if not line_clean:
+            pdf.ln(3)
+            continue
+            
+        # Parse Level-3 Headers (e.g. ### Subjective:)
+        if line_clean.startswith("###"):
+            pdf.ln(4)
+            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_text_color(2, 132, 199) # Subheaders in clinical blue
+            header_text = line_clean.replace("###", "").replace(":", "").strip()
+            pdf.cell(0, 10, header_text.upper(), ln=True)
+            # Add subtle underline accent
+            pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 40, pdf.get_y())
+            pdf.ln(2)
+            pdf.set_text_color(15, 23, 42) # Reset to dark text
+            
+        # Parse Level-2 Headers or bold category blocks
+        elif line_clean.startswith("**") and line_clean.endswith("**"):
+            pdf.set_font("Helvetica", "B", 11)
+            bold_text = line_clean.replace("**", "").strip()
+            pdf.cell(0, 7, bold_text, ln=True)
+            
+        else:
+            pdf.set_font("Helvetica", size=10)
+            # Strip remaining raw string inline markdown syntax anomalies
+            sanitized_body_line = line_clean.replace("**", "").replace("*", "-")
+            pdf.multi_cell(0, 6, sanitized_body_line)
+            
+    # Output byte array sequence payload
+    return pdf.output()
 
 # =====================================================================
 # 1. SESSION STATE INITIALIZATION
@@ -281,13 +343,21 @@ if st.session_state.transcript:
         
         action_col1, action_col2 = st.columns(2)
         with action_col1:
-            st.download_button(
-                label="🖨️ Download / Print Clinical Record (PDF-Ready format)",
-                data=st.session_state.soap_note,
-                file_name=f"Clinical_SOAP_Record_{datetime.now().strftime('%Y%m%d')}.md",
-                mime="text/markdown",
-                use_container_width=True
-            )
+            # -------------------------------------------------------------
+            # FIXED: Generate real binary PDF data stream for download
+            # -------------------------------------------------------------
+            try:
+                pdf_binary = generate_clinical_pdf(st.session_state.soap_note, specialty_profile)
+                st.download_button(
+                    label="🖨️ Download Professional Clinical Chart (PDF Format)",
+                    data=pdf_binary,
+                    file_name=f"Salience_OS_Chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            except Exception as pdf_err:
+                st.error(f"⚠️ PDF Render Pending Engine Init: {pdf_err}")
+                
         with action_col2:
             if st.session_state.chart_locked:
                 st.button("✅ Chart Synced to FHIR Interoperability Network", disabled=True, use_container_width=True)
