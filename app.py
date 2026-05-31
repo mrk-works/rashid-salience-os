@@ -17,15 +17,43 @@ from groq import Groq
 import google.generativeai as genai
 import pandas as pd
 from pydub import AudioSegment
-from fpdf import FPDF  # Added for native PDF compilation
+from fpdf import FPDF  # Lightweight native PDF compiler
 
 # =====================================================================
-# 0. HELPER FUNCTION: MARKDOWN TO PROFESSIONAL MEDICAL PDF CORRECTION
+# 0. SAFETY LAYER: UNICODE TO LATIN-1 CHAR SANITIZATION FOR FPDF
 # =====================================================================
+def sanitize_for_pdf(text):
+    """
+    Cleans Unicode characters (smart quotes, dashes, bullets) that cause
+    core PDF fonts like Helvetica to throw encoding exceptions.
+    """
+    if not text:
+        return ""
+    
+    # Map common high-frequency Unicode characters to Latin-1 safe characters
+    char_map = {
+        "•": "-",    # Bullet point
+        "—": "-",    # Em dash
+        "–": "-",    # En dash
+        "“": '"',    # Left smart quote
+        "”": '"',    # Right smart quote
+        "‘": "'",    # Left single smart quote
+        "’": "'",    # Right single smart quote
+        "™": "TM",
+        "©": "(c)",
+        "®": "(r)"
+    }
+    
+    for unicode_char, safe_char in char_map.items():
+        text = text.replace(unicode_char, safe_char)
+        
+    # Fallback: Encode to latin-1, replacing untranslatable characters with '?'
+    return text.encode('latin-1', errors='replace').decode('latin-1')
+
 def generate_clinical_pdf(soap_text, specialty):
     """
-    Parses structural markdown text streams and renders an elegant,
-    high-contrast medical PDF chart ready for administrative print.
+    Parses structural text streams and renders an elegant,
+    high-contrast medical PDF chart safe from character encoding crashes.
     """
     pdf = FPDF()
     pdf.add_page()
@@ -37,10 +65,11 @@ def generate_clinical_pdf(soap_text, specialty):
     
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, "SALIENCE OS • CLINICAL NOTE MATRIX", ln=True, align="C")
+    # FIXED: Replaced Unicode bullet point "•" with a standard pipe "|"
+    pdf.cell(0, 12, "SALIENCE OS | CLINICAL NOTE MATRIX", ln=True, align="C")
     
     pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 5, f"Specialty Vector Profile: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+    pdf.cell(0, 5, sanitize_for_pdf(f"Specialty Vector Profile: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"), ln=True, align="C")
     pdf.ln(15)
     
     # Body Parameters Reset
@@ -59,7 +88,7 @@ def generate_clinical_pdf(soap_text, specialty):
             pdf.set_font("Helvetica", "B", 14)
             pdf.set_text_color(2, 132, 199) # Subheaders in clinical blue
             header_text = line_clean.replace("###", "").replace(":", "").strip()
-            pdf.cell(0, 10, header_text.upper(), ln=True)
+            pdf.cell(0, 10, sanitize_for_pdf(header_text.upper()), ln=True)
             # Add subtle underline accent
             pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 40, pdf.get_y())
             pdf.ln(2)
@@ -69,13 +98,13 @@ def generate_clinical_pdf(soap_text, specialty):
         elif line_clean.startswith("**") and line_clean.endswith("**"):
             pdf.set_font("Helvetica", "B", 11)
             bold_text = line_clean.replace("**", "").strip()
-            pdf.cell(0, 7, bold_text, ln=True)
+            pdf.cell(0, 7, sanitize_for_pdf(bold_text), ln=True)
             
         else:
             pdf.set_font("Helvetica", size=10)
             # Strip remaining raw string inline markdown syntax anomalies
             sanitized_body_line = line_clean.replace("**", "").replace("*", "-")
-            pdf.multi_cell(0, 6, sanitized_body_line)
+            pdf.multi_cell(0, 6, sanitize_for_pdf(sanitized_body_line))
             
     # Output byte array sequence payload
     return pdf.output()
@@ -343,10 +372,8 @@ if st.session_state.transcript:
         
         action_col1, action_col2 = st.columns(2)
         with action_col1:
-            # -------------------------------------------------------------
-            # FIXED: Generate real binary PDF data stream for download
-            # -------------------------------------------------------------
             try:
+                # Executes the updated, safe binary generation pipeline
                 pdf_binary = generate_clinical_pdf(st.session_state.soap_note, specialty_profile)
                 st.download_button(
                     label="🖨️ Download Professional Clinical Chart (PDF Format)",
