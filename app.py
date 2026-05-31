@@ -104,8 +104,8 @@ def generate_clinical_pdf(soap_text, specialty):
             pdf.set_font("Helvetica", size=10)
             sanitized_body_line = line_clean.replace("**", "").replace("*", "-")
             pdf.multi_cell(effective_width, 6, sanitize_for_pdf(sanitized_body_line))
-
-    return pdf.output()
+            
+    return bytes(pdf.output())
 
 # =====================================================================
 # 1. SESSION STATE INITIALIZATION
