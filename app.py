@@ -65,7 +65,6 @@ def generate_clinical_pdf(soap_text, specialty):
     
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 18)
-    # FIXED: Replaced Unicode bullet point "•" with a standard pipe "|"
     pdf.cell(0, 12, "SALIENCE OS | CLINICAL NOTE MATRIX", ln=True, align="C")
     
     pdf.set_font("Helvetica", "I", 10)
@@ -334,7 +333,8 @@ with col_pipeline:
                             generation_config={"response_mime_type": "application/json"}
                         )
                         
-                        parsed_payload = json.loads(response_package.text)
+                        # SYSTEM PATCH APPLIED HERE: strict=False prevents crashes from unescaped control chars
+                        parsed_payload = json.loads(response_package.text, strict=False)
                         
                         st.session_state.transcript = parsed_payload.get("cleaned_transcript", "")
                         st.session_state.classification = parsed_payload.get("classification", {})
@@ -373,7 +373,6 @@ if st.session_state.transcript:
         action_col1, action_col2 = st.columns(2)
         with action_col1:
             try:
-                # Executes the updated, safe binary generation pipeline
                 pdf_binary = generate_clinical_pdf(st.session_state.soap_note, specialty_profile)
                 st.download_button(
                     label="🖨️ Download Professional Clinical Chart (PDF Format)",
