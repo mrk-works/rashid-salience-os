@@ -1,4 +1,3 @@
-```python
 # SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub stability
 import sys
 try:
