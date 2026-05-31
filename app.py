@@ -1,3 +1,4 @@
+```python
 # SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub stability
 import sys
 try:
@@ -134,7 +135,7 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 /* ══════════════════════════════════════════
-   TOKEN LAYER — Light (default)
+   TOKEN LAYER — Light
 ══════════════════════════════════════════ */
 :root,
 html[data-salience-theme="light"] {
@@ -265,12 +266,15 @@ h1, h2, h3, h4 {
 p, span, div, label {
     font-family: var(--s-font-ui) !important;
 }
+
+/* Hide Streamlit chrome — keep header so sidebar toggle works */
 #MainMenu, footer,
 [data-testid="stDecoration"],
 div[data-testid="stToolbar"] {
     visibility: hidden !important;
     display: none !important;
 }
+
 .block-container {
     padding: 1.5rem 2rem 3rem !important;
     max-width: 1280px !important;
@@ -284,6 +288,8 @@ div[data-testid="stToolbar"] {
     border-right: 1px solid var(--s-sidebar-border) !important;
     transition: var(--s-transition);
 }
+
+/* Targeted sidebar text — NOT a blanket * override */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label,
@@ -379,14 +385,8 @@ div[data-testid="stToolbar"] {
     border: 1px solid;
     transition: var(--s-transition);
 }
-.alert-rail {
-    width: 4px;
-    flex-shrink: 0;
-}
-.alert-body {
-    flex: 1;
-    padding: 12px 14px;
-}
+.alert-rail { width: 4px; flex-shrink: 0; }
+.alert-body { flex: 1; padding: 12px 14px; }
 .alert-tier {
     font-family: var(--s-font-ui);
     font-size: 10px;
@@ -404,12 +404,10 @@ div[data-testid="stToolbar"] {
     line-height: 1.55;
 }
 
-/* CRITICAL */
 .alert-critical {
     background: var(--s-critical-bg);
     border-color: var(--s-critical-border);
-    box-shadow: 0 0 0 1px var(--s-critical-border),
-                0 4px 16px var(--s-critical-glow);
+    box-shadow: 0 0 0 1px var(--s-critical-border), 0 4px 16px var(--s-critical-glow);
     animation: criticalPulse 2.4s ease-in-out infinite;
 }
 .alert-critical .alert-rail  { background: var(--s-critical-rail); }
@@ -421,7 +419,6 @@ div[data-testid="stToolbar"] {
     50%       { box-shadow: 0 0 0 1px var(--s-critical-border), 0 4px 28px var(--s-critical-glow), 0 0 0 4px var(--s-critical-pulse); }
 }
 
-/* HIGH */
 .alert-high {
     background: var(--s-high-bg);
     border-color: var(--s-high-border);
@@ -430,7 +427,6 @@ div[data-testid="stToolbar"] {
 .alert-high .alert-tier  { color: var(--s-high-label); }
 .alert-high .alert-desc  { color: var(--s-high-text); }
 
-/* MEDIUM */
 .alert-medium {
     background: var(--s-medium-bg);
     border-color: var(--s-medium-border);
@@ -439,7 +435,6 @@ div[data-testid="stToolbar"] {
 .alert-medium .alert-tier  { color: var(--s-medium-label); }
 .alert-medium .alert-desc  { color: var(--s-medium-text); }
 
-/* INFO / LOW */
 .alert-info {
     background: var(--s-info-bg);
     border-color: var(--s-info-border);
@@ -448,7 +443,6 @@ div[data-testid="stToolbar"] {
 .alert-info .alert-tier  { color: var(--s-info-label); }
 .alert-info .alert-desc  { color: var(--s-info-text); }
 
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .alert-critical { animation: none !important; }
     * { transition-duration: 0ms !important; }
@@ -467,7 +461,6 @@ div[data-testid="stToolbar"] {
     border-radius: 8px;
     padding: 10px 13px;
     font-size: 12px;
-    font-weight: var(--s-weight-normal);
     color: var(--s-critical-text);
     margin-bottom: 7px;
     line-height: 1.55;
@@ -500,11 +493,7 @@ div[data-testid="stToolbar"] {
     color: var(--s-text-primary);
     flex: 1;
 }
-.signal-cat {
-    font-size: 10px;
-    color: var(--s-text-tertiary);
-    font-weight: var(--s-weight-normal);
-}
+.signal-cat  { font-size: 10px; color: var(--s-text-tertiary); }
 .signal-score {
     font-family: var(--s-font-mono);
     font-size: 11px;
@@ -551,7 +540,6 @@ div[data-testid="stToolbar"] {
 ══════════════════════════════════════════ */
 .step-item {
     font-size: 12px;
-    font-family: var(--s-font-ui);
     padding: 7px 0;
     border-bottom: 1px solid var(--s-border);
     color: var(--s-text-secondary);
@@ -563,24 +551,6 @@ div[data-testid="stToolbar"] {
 }
 .step-item:hover { color: var(--s-text-primary); }
 .step-item:last-child { border-bottom: none; }
-
-/* ══════════════════════════════════════════
-   SOAP REVIEW
-══════════════════════════════════════════ */
-.soap-section-label {
-    font-size: 10px;
-    font-weight: var(--s-weight-semibold);
-    letter-spacing: 0.9px;
-    text-transform: uppercase;
-    color: var(--s-text-tertiary);
-    margin-bottom: 4px;
-    margin-top: 14px;
-}
-.soap-content {
-    font-size: 13px;
-    line-height: 1.8;
-    color: var(--s-text-secondary);
-}
 
 /* ══════════════════════════════════════════
    BUTTONS
@@ -598,7 +568,6 @@ div[data-testid="stToolbar"] {
 }
 [data-testid="stButton"] button:hover {
     background: var(--s-bg-subtle) !important;
-    border-color: var(--s-border-strong) !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
 }
@@ -616,7 +585,6 @@ div[data-testid="stToolbar"] {
 }
 [data-testid="stButton"] button[kind="primary"]:hover {
     opacity: 0.88 !important;
-    background: var(--s-text-primary) !important;
 }
 [data-testid="stButton"] button:disabled {
     opacity: 0.38 !important;
@@ -719,7 +687,7 @@ textarea {
 }
 
 /* ══════════════════════════════════════════
-   DIVIDERS, CAPTIONS, ALERTS, MISC
+   MISC
 ══════════════════════════════════════════ */
 hr { border-color: var(--s-border) !important; }
 
@@ -868,11 +836,6 @@ with st.sidebar:
         "Language matrix",
         ["Mixed (Multi-lingual Code-Switching)", "English (US/UK)", "Arabic (Khaleeji/MSA)"],
     )
-    target_language = st.selectbox(
-        "Language matrix",
-        ["Mixed (Multi-lingual Code-Switching)", "English (US/UK)", "Arabic (Khaleeji/MSA)"],
-        label_visibility="collapsed"
-    )
 
     st.divider()
     st.markdown('<div class="sb-section-label">API credentials</div>', unsafe_allow_html=True)
@@ -881,12 +844,12 @@ with st.sidebar:
     has_cloud_gemini = "gemini_api_key" in st.secrets
 
     groq_input = st.text_input(
-        "Groq (Whisper v3)",
+        "Groq — Whisper v3",
         type="password",
         placeholder="Active via vault" if has_cloud_groq else "sk-...",
     )
     gemini_input = st.text_input(
-        "Gemini (Flash 2.5)",
+        "Gemini — Flash 2.5",
         type="password",
         placeholder="Active via vault" if has_cloud_gemini else "AI...",
     )
@@ -919,7 +882,7 @@ st.divider()
 
 
 # =====================================================================
-# 7. INPUT AREA (shown only before first run)
+# 7. INPUT AREA
 # =====================================================================
 if not st.session_state.transcript:
     cap_col, exam_col = st.columns([1.1, 1], gap="large")
@@ -934,10 +897,10 @@ if not st.session_state.transcript:
             label_visibility="collapsed"
         )
 
-        temp_audio_filename   = "active_stream_input.wav"
+        temp_audio_filename     = "active_stream_input.wav"
         has_valid_audio_payload = False
-        bypass_audio_stt      = False
-        injected_text_payload = ""
+        bypass_audio_stt        = False
+        injected_text_payload   = ""
 
         if "Text" in input_vector:
             injected_text_payload = st.text_area(
@@ -1041,8 +1004,8 @@ if not st.session_state.transcript:
                         st.write("✓ Text input ingested")
                     else:
                         st.write("Compressing audio…")
-                        raw_audio        = AudioSegment.from_file(temp_audio_filename)
-                        processed_audio  = raw_audio.set_channels(1).set_frame_rate(16000)
+                        raw_audio           = AudioSegment.from_file(temp_audio_filename)
+                        processed_audio     = raw_audio.set_channels(1).set_frame_rate(16000)
                         compressed_filename = "optimized_api_payload.mp3"
                         processed_audio.export(compressed_filename, format="mp3", bitrate="64k")
                         groq_client = Groq(api_key=groq_api_key, timeout=60.0)
@@ -1089,14 +1052,14 @@ if not st.session_state.transcript:
                     )
                     parsed_payload = json.loads(response_package.text, strict=False)
 
-                    st.session_state.transcript               = parsed_payload.get("cleaned_transcript", "")
-                    st.session_state.classification           = parsed_payload.get("classification", {})
-                    st.session_state.salience_map             = parsed_payload.get("salience_weight_map", [])
-                    st.session_state.soap_note                = parsed_payload.get("structured_soap_chart", "")
-                    st.session_state.flags                    = parsed_payload.get("clinical_safety_red_flags", [])
-                    st.session_state.next_steps               = parsed_payload.get("suggested_next_steps", [])
-                    st.session_state.pipeline_execution_time  = round(time.time() - pipeline_start, 2)
-                    st.session_state.chart_locked             = False
+                    st.session_state.transcript              = parsed_payload.get("cleaned_transcript", "")
+                    st.session_state.classification          = parsed_payload.get("classification", {})
+                    st.session_state.salience_map            = parsed_payload.get("salience_weight_map", [])
+                    st.session_state.soap_note               = parsed_payload.get("structured_soap_chart", "")
+                    st.session_state.flags                   = parsed_payload.get("clinical_safety_red_flags", [])
+                    st.session_state.next_steps              = parsed_payload.get("suggested_next_steps", [])
+                    st.session_state.pipeline_execution_time = round(time.time() - pipeline_start, 2)
+                    st.session_state.chart_locked            = False
 
                     status.update(label="Analysis complete", state="complete", expanded=False)
                     st.rerun()
@@ -1117,7 +1080,6 @@ if st.session_state.transcript:
     urgency = st.session_state.classification.get("urgency_tier", "")
     trigger = st.session_state.classification.get("primary_clinical_trigger", "")
 
-    # Urgency banner
     _tier_map = {
         "CRITICAL": ("alert-critical", "⬤ Critical — immediate action required"),
         "HIGH":     ("alert-high",     "⬤ High priority"),
@@ -1226,9 +1188,7 @@ if st.session_state.transcript:
 
         with action_col:
             st.markdown('<p class="panel-header">Review & sign-off</p>', unsafe_allow_html=True)
-            st.caption(
-                f"Processed {st.session_state.pipeline_execution_time}s ago · {specialty_profile}"
-            )
+            st.caption(f"Processed {st.session_state.pipeline_execution_time}s ago · {specialty_profile}")
             st.divider()
 
             try:
@@ -1298,3 +1258,4 @@ if st.session_state.transcript:
                     <div class="explain-body">{item.get('reasoning_context','')}</div>
                 </div>
                 """, unsafe_allow_html=True)
+```
