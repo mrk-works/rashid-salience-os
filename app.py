@@ -10,6 +10,7 @@ except ImportError:
         pass
 
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 import json
 import time
@@ -22,7 +23,7 @@ from fpdf import FPDF
 
 
 # =====================================================================
-# 0. PDF UTILITIES (unchanged logic)
+# 0. PDF UTILITIES
 # =====================================================================
 def sanitize_for_pdf(text):
     if not text:
@@ -86,206 +87,708 @@ def generate_clinical_pdf(soap_text, specialty):
 
 
 # =====================================================================
-# 1. PAGE CONFIG & CSS
+# 1. PAGE CONFIG
 # =====================================================================
-st.set_page_config(page_title="Salience OS", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Salience OS",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+
+# =====================================================================
+# 2. THEME ENGINE INJECTOR
+# =====================================================================
+def inject_theme_engine():
+    components.html("""
+    <script>
+    (function() {
+        const THEME_KEY = 'SALIENCE_THEME_KEY';
+        function applyTheme(mode) {
+            const root = window.parent.document.documentElement;
+            if (mode === 'system') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                root.setAttribute('data-salience-theme', prefersDark ? 'dark' : 'light');
+            } else {
+                root.setAttribute('data-salience-theme', mode);
+            }
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const stored = localStorage.getItem('SALIENCE_THEME_KEY') || 'system';
+            if (stored === 'system') applyTheme('system');
+        });
+        const stored = localStorage.getItem(THEME_KEY) || 'system';
+        applyTheme(stored);
+    })();
+    </script>
+    """, height=0, scrolling=False)
+
+inject_theme_engine()
+
+
+# =====================================================================
+# 3. DESIGN SYSTEM CSS
+# =====================================================================
 st.markdown("""
 <style>
-/* ── Reset & base ── */
-[data-testid="stAppViewContainer"] {
-    background: var(--background-color);
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ══════════════════════════════════════════
+   TOKEN LAYER — Light (default)
+══════════════════════════════════════════ */
+:root,
+html[data-salience-theme="light"] {
+    --s-bg-base:          #F7F8FA;
+    --s-bg-surface:       #FFFFFF;
+    --s-bg-raised:        #FFFFFF;
+    --s-bg-subtle:        #F0F2F5;
+    --s-bg-hover:         rgba(0,0,0,0.04);
+    --s-border:           rgba(0,0,0,0.08);
+    --s-border-strong:    rgba(0,0,0,0.14);
+    --s-border-focus:     #3B82F6;
+    --s-text-primary:     #0D1117;
+    --s-text-secondary:   #4B5563;
+    --s-text-tertiary:    #9CA3AF;
+    --s-text-inverse:     #FFFFFF;
+    --s-accent:           #1D4ED8;
+    --s-accent-hover:     #1E40AF;
+    --s-critical-bg:      #FEF2F2;
+    --s-critical-border:  #FECACA;
+    --s-critical-rail:    #DC2626;
+    --s-critical-text:    #7F1D1D;
+    --s-critical-label:   #991B1B;
+    --s-critical-icon:    #DC2626;
+    --s-critical-glow:    rgba(220,38,38,0.18);
+    --s-critical-pulse:   rgba(220,38,38,0.08);
+    --s-high-bg:          #FFFBEB;
+    --s-high-border:      #FDE68A;
+    --s-high-rail:        #D97706;
+    --s-high-text:        #78350F;
+    --s-high-label:       #92400E;
+    --s-high-icon:        #D97706;
+    --s-medium-bg:        #EFF6FF;
+    --s-medium-border:    #BFDBFE;
+    --s-medium-rail:      #2563EB;
+    --s-medium-text:      #1E3A5F;
+    --s-medium-label:     #1D4ED8;
+    --s-medium-icon:      #2563EB;
+    --s-info-bg:          #F0FDF4;
+    --s-info-border:      #BBF7D0;
+    --s-info-rail:        #16A34A;
+    --s-info-text:        #14532D;
+    --s-info-label:       #15803D;
+    --s-info-icon:        #16A34A;
+    --s-bar-critical:     #DC2626;
+    --s-bar-high:         #D97706;
+    --s-bar-low:          #16A34A;
+    --s-sidebar-bg:       #F3F4F6;
+    --s-sidebar-border:   rgba(0,0,0,0.08);
+    --s-sidebar-text:     #374151;
+    --s-transition:       background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    --s-font-ui:          'IBM Plex Sans', system-ui, sans-serif;
+    --s-font-mono:        'IBM Plex Mono', 'SF Mono', monospace;
+    --s-weight-normal:    400;
+    --s-weight-medium:    500;
+    --s-weight-semibold:  600;
 }
+
+/* ══════════════════════════════════════════
+   TOKEN LAYER — Dark
+══════════════════════════════════════════ */
+html[data-salience-theme="dark"] {
+    --s-bg-base:          #0A0C10;
+    --s-bg-surface:       #111318;
+    --s-bg-raised:        #1A1D24;
+    --s-bg-subtle:        #1F222A;
+    --s-bg-hover:         rgba(255,255,255,0.05);
+    --s-border:           rgba(255,255,255,0.08);
+    --s-border-strong:    rgba(255,255,255,0.14);
+    --s-border-focus:     #60A5FA;
+    --s-text-primary:     #F1F5F9;
+    --s-text-secondary:   #94A3B8;
+    --s-text-tertiary:    #475569;
+    --s-text-inverse:     #0D1117;
+    --s-accent:           #60A5FA;
+    --s-accent-hover:     #93C5FD;
+    --s-critical-bg:      rgba(220,38,38,0.12);
+    --s-critical-border:  rgba(220,38,38,0.35);
+    --s-critical-rail:    #EF4444;
+    --s-critical-text:    #FCA5A5;
+    --s-critical-label:   #F87171;
+    --s-critical-icon:    #EF4444;
+    --s-critical-glow:    rgba(239,68,68,0.25);
+    --s-critical-pulse:   rgba(239,68,68,0.10);
+    --s-high-bg:          rgba(217,119,6,0.10);
+    --s-high-border:      rgba(217,119,6,0.35);
+    --s-high-rail:        #F59E0B;
+    --s-high-text:        #FCD34D;
+    --s-high-label:       #FBBF24;
+    --s-high-icon:        #F59E0B;
+    --s-medium-bg:        rgba(37,99,235,0.12);
+    --s-medium-border:    rgba(37,99,235,0.35);
+    --s-medium-rail:      #60A5FA;
+    --s-medium-text:      #BFDBFE;
+    --s-medium-label:     #93C5FD;
+    --s-medium-icon:      #60A5FA;
+    --s-info-bg:          rgba(22,163,74,0.10);
+    --s-info-border:      rgba(22,163,74,0.30);
+    --s-info-rail:        #34D399;
+    --s-info-text:        #A7F3D0;
+    --s-info-label:       #6EE7B7;
+    --s-info-icon:        #34D399;
+    --s-bar-critical:     #EF4444;
+    --s-bar-high:         #F59E0B;
+    --s-bar-low:          #34D399;
+    --s-sidebar-bg:       #0E1015;
+    --s-sidebar-border:   rgba(255,255,255,0.06);
+    --s-sidebar-text:     #94A3B8;
+}
+
+/* ══════════════════════════════════════════
+   GLOBAL BASE
+══════════════════════════════════════════ */
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+.main,
+.block-container {
+    font-family: var(--s-font-ui) !important;
+    background: var(--s-bg-base) !important;
+    color: var(--s-text-primary) !important;
+    transition: var(--s-transition);
+}
+h1, h2, h3, h4 {
+    font-family: var(--s-font-ui) !important;
+    font-weight: var(--s-weight-semibold) !important;
+    color: var(--s-text-primary) !important;
+}
+p, span, div, label {
+    font-family: var(--s-font-ui) !important;
+}
+#MainMenu, footer, header,
+[data-testid="stDecoration"],
+div[data-testid="stToolbar"] {
+    visibility: hidden !important;
+    display: none !important;
+}
+.block-container {
+    padding: 1.5rem 2rem 3rem !important;
+    max-width: 1280px !important;
+}
+
+/* ══════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════ */
 [data-testid="stSidebar"] {
-    background: rgba(0,0,0,0.02) !important;
-    border-right: 1px solid rgba(0,0,0,0.07) !important;
+    background: var(--s-sidebar-bg) !important;
+    border-right: 1px solid var(--s-sidebar-border) !important;
+    transition: var(--s-transition);
+}
+[data-testid="stSidebar"] * {
+    color: var(--s-sidebar-text) !important;
+    font-family: var(--s-font-ui) !important;
+    transition: var(--s-transition);
 }
 [data-testid="stSidebar"] > div:first-child {
     padding-top: 1.25rem;
 }
+[data-testid="stSidebar"] [data-baseweb="select"] > div,
+[data-testid="stSidebar"] [data-baseweb="input"] > div {
+    background: var(--s-bg-surface) !important;
+    border-color: var(--s-border) !important;
+    border-radius: 7px !important;
+    transition: var(--s-transition);
+}
+[data-testid="stSidebar"] [data-baseweb="select"] > div:hover,
+[data-testid="stSidebar"] [data-baseweb="input"] > div:hover {
+    border-color: var(--s-border-strong) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.08) !important;
+}
 
-/* ── Sidebar logo ── */
+/* ══════════════════════════════════════════
+   SIDEBAR LOGO & LABELS
+══════════════════════════════════════════ */
 .sb-logo {
     font-size: 15px;
-    font-weight: 600;
+    font-weight: var(--s-weight-semibold);
     letter-spacing: 0.3px;
     padding: 0 1rem 1rem;
-    border-bottom: 1px solid rgba(0,0,0,0.07);
+    border-bottom: 1px solid var(--s-border);
     margin-bottom: 1rem;
-    color: inherit;
+    color: var(--s-text-primary) !important;
+    transition: var(--s-transition);
 }
 .sb-logo span {
-    opacity: 0.45;
-    font-weight: 400;
+    opacity: 0.35;
+    font-weight: var(--s-weight-normal);
 }
-
-/* ── Section label ── */
-.sb-section-label {
+.sb-section-label,
+.panel-header {
+    font-family: var(--s-font-ui) !important;
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.8px;
+    font-weight: var(--s-weight-semibold);
+    letter-spacing: 0.9px;
     text-transform: uppercase;
-    opacity: 0.4;
-    margin-bottom: 0.35rem;
-    padding: 0 0.1rem;
+    color: var(--s-text-tertiary) !important;
+    margin-bottom: 0.6rem;
+    transition: color 0.2s ease;
 }
 
-/* ── Status pills ── */
+/* ══════════════════════════════════════════
+   STATUS PILLS
+══════════════════════════════════════════ */
 .status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 11px;
-    padding: 3px 9px;
+    font-weight: var(--s-weight-medium);
+    padding: 4px 10px;
     border-radius: 20px;
-    font-weight: 500;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
+    transition: var(--s-transition);
 }
 .status-ready {
-    background: rgba(100,153,34,0.12);
-    color: #3B6D11;
-}
-.status-processing {
-    background: rgba(239,159,39,0.15);
-    color: #854F0B;
+    background: var(--s-info-bg);
+    color: var(--s-info-label) !important;
+    border: 1px solid var(--s-info-border);
 }
 .status-done {
-    background: rgba(29,158,117,0.12);
-    color: #0F6E56;
+    background: var(--s-info-bg);
+    color: var(--s-info-label) !important;
+    border: 1px solid var(--s-info-border);
+}
+.status-processing {
+    background: var(--s-high-bg);
+    color: var(--s-high-label) !important;
+    border: 1px solid var(--s-high-border);
 }
 
-/* ── Urgency banner ── */
-.urgency-critical {
-    background: rgba(226,75,74,0.08);
-    border: 1px solid rgba(226,75,74,0.25);
+/* ══════════════════════════════════════════
+   SEVERITY ALERT SHELLS
+══════════════════════════════════════════ */
+.alert-shell {
+    display: flex;
+    gap: 0;
     border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 1rem;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid;
+    transition: var(--s-transition);
 }
-.urgency-high {
-    background: rgba(239,159,39,0.08);
-    border: 1px solid rgba(239,159,39,0.25);
-    border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 1rem;
+.alert-rail {
+    width: 4px;
+    flex-shrink: 0;
 }
-.urgency-label {
+.alert-body {
+    flex: 1;
+    padding: 12px 14px;
+}
+.alert-tier {
+    font-family: var(--s-font-ui);
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
+    font-weight: var(--s-weight-semibold);
+    letter-spacing: 0.9px;
     text-transform: uppercase;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
-.urgency-critical .urgency-label { color: #A32D2D; }
-.urgency-high .urgency-label { color: #854F0B; }
-.urgency-critical .urgency-desc { color: #791F1F; font-size: 13px; margin-top: 3px; }
-.urgency-high .urgency-desc { color: #633806; font-size: 13px; margin-top: 3px; }
+.alert-desc {
+    font-size: 13px;
+    font-weight: var(--s-weight-normal);
+    line-height: 1.55;
+}
 
-/* ── Signal rows ── */
+/* CRITICAL */
+.alert-critical {
+    background: var(--s-critical-bg);
+    border-color: var(--s-critical-border);
+    box-shadow: 0 0 0 1px var(--s-critical-border),
+                0 4px 16px var(--s-critical-glow);
+    animation: criticalPulse 2.4s ease-in-out infinite;
+}
+.alert-critical .alert-rail  { background: var(--s-critical-rail); }
+.alert-critical .alert-tier  { color: var(--s-critical-label); }
+.alert-critical .alert-desc  { color: var(--s-critical-text); }
+
+@keyframes criticalPulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--s-critical-border), 0 4px 16px var(--s-critical-glow); }
+    50%       { box-shadow: 0 0 0 1px var(--s-critical-border), 0 4px 28px var(--s-critical-glow), 0 0 0 4px var(--s-critical-pulse); }
+}
+
+/* HIGH */
+.alert-high {
+    background: var(--s-high-bg);
+    border-color: var(--s-high-border);
+}
+.alert-high .alert-rail  { background: var(--s-high-rail); }
+.alert-high .alert-tier  { color: var(--s-high-label); }
+.alert-high .alert-desc  { color: var(--s-high-text); }
+
+/* MEDIUM */
+.alert-medium {
+    background: var(--s-medium-bg);
+    border-color: var(--s-medium-border);
+}
+.alert-medium .alert-rail  { background: var(--s-medium-rail); }
+.alert-medium .alert-tier  { color: var(--s-medium-label); }
+.alert-medium .alert-desc  { color: var(--s-medium-text); }
+
+/* INFO / LOW */
+.alert-info {
+    background: var(--s-info-bg);
+    border-color: var(--s-info-border);
+}
+.alert-info .alert-rail  { background: var(--s-info-rail); }
+.alert-info .alert-tier  { color: var(--s-info-label); }
+.alert-info .alert-desc  { color: var(--s-info-text); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .alert-critical { animation: none !important; }
+    * { transition-duration: 0ms !important; }
+}
+
+/* ══════════════════════════════════════════
+   FLAG ITEMS
+══════════════════════════════════════════ */
+.flag-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--s-critical-bg);
+    border: 1px solid var(--s-critical-border);
+    border-left: 4px solid var(--s-critical-rail);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 12px;
+    font-weight: var(--s-weight-normal);
+    color: var(--s-critical-text);
+    margin-bottom: 7px;
+    line-height: 1.55;
+    transition: var(--s-transition);
+}
+.flag-item::before {
+    content: "⚠";
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ══════════════════════════════════════════
+   SIGNAL ROWS
+══════════════════════════════════════════ */
 .signal-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 9px 6px;
+    border-bottom: 1px solid var(--s-border);
+    border-radius: 6px;
+    transition: background 0.15s ease;
 }
 .signal-row:last-child { border-bottom: none; }
-.signal-name { font-size: 13px; font-weight: 500; flex: 1; }
-.signal-cat { font-size: 10px; opacity: 0.45; }
-.signal-score { font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums; width: 28px; text-align: right; }
-
-/* ── Flag items ── */
-.flag-item {
-    background: rgba(226,75,74,0.07);
-    border: 1px solid rgba(226,75,74,0.2);
-    border-radius: 8px;
-    padding: 9px 12px;
-    font-size: 12px;
-    color: #791F1F;
-    margin-bottom: 6px;
-    line-height: 1.5;
+.signal-row:hover { background: var(--s-bg-hover); }
+.signal-name {
+    font-size: 13px;
+    font-weight: var(--s-weight-medium);
+    color: var(--s-text-primary);
+    flex: 1;
+}
+.signal-cat {
+    font-size: 10px;
+    color: var(--s-text-tertiary);
+    font-weight: var(--s-weight-normal);
+}
+.signal-score {
+    font-family: var(--s-font-mono);
+    font-size: 11px;
+    color: var(--s-text-secondary);
+    width: 32px;
+    text-align: right;
 }
 
-/* ── Explain cards ── */
+/* ══════════════════════════════════════════
+   EXPLAINABILITY CARDS
+══════════════════════════════════════════ */
 .explain-card {
-    border: 1px solid rgba(0,0,0,0.07);
+    border: 1px solid var(--s-border);
     border-radius: 9px;
-    padding: 10px 13px;
+    padding: 11px 14px;
     margin-bottom: 8px;
+    background: var(--s-bg-surface);
+    transition: var(--s-transition);
+}
+.explain-card:hover {
+    border-color: var(--s-border-strong);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .explain-head {
     font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 4px;
+    font-weight: var(--s-weight-semibold);
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     gap: 7px;
+    color: var(--s-text-primary);
 }
 .explain-body {
     font-size: 11px;
-    opacity: 0.6;
-    line-height: 1.6;
+    color: var(--s-text-secondary);
+    line-height: 1.65;
 }
-.conf-hi { color: #A32D2D; }
-.conf-med { color: #854F0B; }
-.conf-lo { color: #3B6D11; }
+.conf-hi  { color: var(--s-critical-icon); }
+.conf-med { color: var(--s-high-icon); }
+.conf-lo  { color: var(--s-info-icon); }
 
-/* ── SOAP review ── */
+/* ══════════════════════════════════════════
+   STEP LIST
+══════════════════════════════════════════ */
+.step-item {
+    font-size: 12px;
+    font-family: var(--s-font-ui);
+    padding: 7px 0;
+    border-bottom: 1px solid var(--s-border);
+    color: var(--s-text-secondary);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.5;
+    transition: color 0.15s ease;
+}
+.step-item:hover { color: var(--s-text-primary); }
+.step-item:last-child { border-bottom: none; }
+
+/* ══════════════════════════════════════════
+   SOAP REVIEW
+══════════════════════════════════════════ */
 .soap-section-label {
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
+    font-weight: var(--s-weight-semibold);
+    letter-spacing: 0.9px;
     text-transform: uppercase;
-    opacity: 0.4;
+    color: var(--s-text-tertiary);
     margin-bottom: 4px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 .soap-content {
     font-size: 13px;
     line-height: 1.8;
-    opacity: 0.85;
+    color: var(--s-text-secondary);
 }
 
-/* ── Step list ── */
-.step-item {
-    font-size: 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    opacity: 0.75;
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
+/* ══════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════ */
+[data-testid="stButton"] button {
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+    font-weight: var(--s-weight-medium) !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--s-border-strong) !important;
+    background: var(--s-bg-surface) !important;
+    color: var(--s-text-primary) !important;
+    transition: all 0.15s ease !important;
+    padding: 0.45rem 1rem !important;
 }
-.step-item:last-child { border-bottom: none; }
-
-/* ── Panel header ── */
-.panel-header {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    opacity: 0.4;
-    margin-bottom: 0.75rem;
-    margin-top: 0;
+[data-testid="stButton"] button:hover {
+    background: var(--s-bg-subtle) !important;
+    border-color: var(--s-border-strong) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+[data-testid="stButton"] button:active {
+    transform: translateY(0) scale(0.98) !important;
+}
+[data-testid="stButton"] button:focus-visible {
+    outline: 2px solid var(--s-border-focus) !important;
+    outline-offset: 2px !important;
+}
+[data-testid="stButton"] button[kind="primary"] {
+    background: var(--s-text-primary) !important;
+    color: var(--s-text-inverse) !important;
+    border-color: transparent !important;
+}
+[data-testid="stButton"] button[kind="primary"]:hover {
+    opacity: 0.88 !important;
+    background: var(--s-text-primary) !important;
+}
+[data-testid="stButton"] button:disabled {
+    opacity: 0.38 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
-/* ── Hide default streamlit chrome ── */
-#MainMenu, footer, header { visibility: hidden; }
-[data-testid="stDecoration"] { display: none; }
-div[data-testid="stToolbar"] { display: none; }
+/* ══════════════════════════════════════════
+   FORM ELEMENTS
+══════════════════════════════════════════ */
+[data-baseweb="select"] > div,
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] {
+    background: var(--s-bg-surface) !important;
+    border-color: var(--s-border) !important;
+    border-radius: 8px !important;
+    color: var(--s-text-primary) !important;
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+    transition: var(--s-transition) !important;
+}
+[data-baseweb="select"] > div:hover,
+[data-baseweb="input"] > div:hover {
+    border-color: var(--s-border-strong) !important;
+}
+[data-baseweb="select"] > div:focus-within,
+[data-baseweb="input"] > div:focus-within {
+    border-color: var(--s-border-focus) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15) !important;
+}
+textarea {
+    background: var(--s-bg-surface) !important;
+    color: var(--s-text-primary) !important;
+    font-family: var(--s-font-mono) !important;
+    font-size: 12px !important;
+    line-height: 1.75 !important;
+    border-radius: 8px !important;
+    border-color: var(--s-border) !important;
+    transition: var(--s-transition) !important;
+}
 
-/* ── Compact stMetric ── */
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    background: var(--s-bg-subtle) !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 2px !important;
+    border: 1px solid var(--s-border) !important;
+    transition: var(--s-transition);
+}
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    background: transparent !important;
+    border-radius: 8px !important;
+    font-family: var(--s-font-ui) !important;
+    font-size: 12px !important;
+    font-weight: var(--s-weight-medium) !important;
+    color: var(--s-text-secondary) !important;
+    padding: 5px 14px !important;
+    transition: all 0.15s ease !important;
+    border: none !important;
+}
+[data-testid="stTabs"] [aria-selected="true"] {
+    background: var(--s-bg-surface) !important;
+    color: var(--s-text-primary) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+[data-testid="stTabs"] [data-baseweb="tab"]:hover {
+    color: var(--s-text-primary) !important;
+}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stTabs"] [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+/* ══════════════════════════════════════════
+   METRICS
+══════════════════════════════════════════ */
 [data-testid="metric-container"] {
-    background: rgba(0,0,0,0.03);
-    border-radius: 10px;
-    padding: 10px 14px;
-    border: 1px solid rgba(0,0,0,0.06);
+    background: var(--s-bg-surface) !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    border: 1px solid var(--s-border) !important;
+    transition: var(--s-transition);
+}
+[data-testid="metric-container"] label {
+    font-size: 10px !important;
+    font-weight: var(--s-weight-semibold) !important;
+    letter-spacing: 0.7px !important;
+    text-transform: uppercase !important;
+    color: var(--s-text-tertiary) !important;
+}
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    font-family: var(--s-font-mono) !important;
+    font-size: 18px !important;
+    font-weight: var(--s-weight-semibold) !important;
+    color: var(--s-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════
+   DIVIDERS, CAPTIONS, ALERTS, MISC
+══════════════════════════════════════════ */
+hr { border-color: var(--s-border) !important; }
+
+[data-testid="stStatus"] {
+    background: var(--s-bg-surface) !important;
+    border: 1px solid var(--s-border) !important;
+    border-radius: 10px !important;
+    font-family: var(--s-font-ui) !important;
+    transition: var(--s-transition);
+}
+[data-testid="stCaptionContainer"] p,
+.stCaption {
+    font-size: 11px !important;
+    color: var(--s-text-tertiary) !important;
+    font-family: var(--s-font-ui) !important;
+}
+[data-testid="stAlert"] {
+    border-radius: 9px !important;
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+    border-left-width: 4px !important;
+    transition: var(--s-transition);
+}
+[data-testid="stRadio"] label {
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+    color: var(--s-text-secondary) !important;
+    transition: color 0.15s ease;
+}
+[data-testid="stRadio"] label:hover {
+    color: var(--s-text-primary) !important;
+}
+[data-testid="stFileUploader"] {
+    border: 1px dashed var(--s-border-strong) !important;
+    border-radius: 10px !important;
+    background: var(--s-bg-subtle) !important;
+    transition: var(--s-transition);
+}
+[data-testid="stFileUploader"]:hover {
+    border-color: var(--s-border-focus) !important;
+    background: var(--s-bg-hover) !important;
+}
+[data-testid="stDownloadButton"] button {
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+    font-weight: var(--s-weight-medium) !important;
+    background: var(--s-bg-surface) !important;
+    border: 1px solid var(--s-border-strong) !important;
+    color: var(--s-text-primary) !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+}
+[data-testid="stDownloadButton"] button:hover {
+    background: var(--s-bg-subtle) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+}
+[data-testid="stSpinner"] {
+    color: var(--s-text-secondary) !important;
+    font-family: var(--s-font-ui) !important;
+    font-size: 13px !important;
+}
+*:focus-visible {
+    outline: 2px solid var(--s-border-focus) !important;
+    outline-offset: 2px !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # =====================================================================
-# 2. SESSION STATE
+# 4. SESSION STATE
 # =====================================================================
 if "transcript" not in st.session_state:
     st.session_state.transcript = ""
@@ -299,10 +802,52 @@ if "transcript" not in st.session_state:
 
 
 # =====================================================================
-# 3. SIDEBAR — configuration (collapsed by default when output exists)
+# 5. SIDEBAR
 # =====================================================================
 with st.sidebar:
     st.markdown('<div class="sb-logo">Salience <span>OS</span></div>', unsafe_allow_html=True)
+
+    # Theme switcher
+    components.html("""
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: transparent; }
+      .ts { display: flex; gap: 3px; padding: 3px;
+            background: rgba(0,0,0,0.06); border-radius: 8px;
+            margin: 0 0 10px; border: 1px solid rgba(0,0,0,0.09); }
+      .tb { flex: 1; padding: 5px 0; font-size: 11px; font-weight: 500;
+            text-align: center; border: none; border-radius: 6px;
+            cursor: pointer; background: transparent;
+            color: rgba(0,0,0,0.45); font-family: system-ui, sans-serif;
+            transition: all 0.15s ease; }
+      .tb:hover { color: rgba(0,0,0,0.75); background: rgba(0,0,0,0.05); }
+      .tb.active { background: white; color: #0D1117;
+                   box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    </style>
+    <div class="ts" role="group" aria-label="Theme selector">
+      <button class="tb" id="btn-light"  onclick="setTheme('light')">Light</button>
+      <button class="tb" id="btn-system" onclick="setTheme('system')">System</button>
+      <button class="tb" id="btn-dark"   onclick="setTheme('dark')">Dark</button>
+    </div>
+    <script>
+      const THEME_KEY = 'SALIENCE_THEME_KEY';
+      function setTheme(mode) {
+        localStorage.setItem(THEME_KEY, mode);
+        const root = window.parent.document.documentElement;
+        if (mode === 'system') {
+          const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.setAttribute('data-salience-theme', dark ? 'dark' : 'light');
+        } else {
+          root.setAttribute('data-salience-theme', mode);
+        }
+        document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + mode).classList.add('active');
+      }
+      const stored = localStorage.getItem(THEME_KEY) || 'system';
+      document.querySelectorAll('.tb').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + stored)?.classList.add('active');
+    </script>
+    """, height=50, scrolling=False)
 
     if st.session_state.transcript:
         st.markdown('<div class="status-pill status-done">● Analysis complete</div>', unsafe_allow_html=True)
@@ -326,7 +871,7 @@ with st.sidebar:
     st.divider()
     st.markdown('<div class="sb-section-label">API credentials</div>', unsafe_allow_html=True)
 
-    has_cloud_groq = "groq_api_key" in st.secrets
+    has_cloud_groq   = "groq_api_key"   in st.secrets
     has_cloud_gemini = "gemini_api_key" in st.secrets
 
     groq_input = st.text_input(
@@ -340,7 +885,7 @@ with st.sidebar:
         placeholder="Active via vault" if has_cloud_gemini else "AI...",
     )
 
-    groq_api_key = groq_input if groq_input.strip() else st.secrets.get("groq_api_key", "")
+    groq_api_key   = groq_input   if groq_input.strip()   else st.secrets.get("groq_api_key", "")
     gemini_api_key = gemini_input if gemini_input.strip() else st.secrets.get("gemini_api_key", "")
 
     if (has_cloud_groq or has_cloud_gemini) and not (groq_input or gemini_input):
@@ -352,7 +897,7 @@ with st.sidebar:
 
 
 # =====================================================================
-# 4. MAIN HEADER
+# 6. MAIN HEADER
 # =====================================================================
 header_col, meta_col = st.columns([3, 1])
 with header_col:
@@ -361,14 +906,14 @@ with header_col:
 with meta_col:
     if st.session_state.transcript:
         urgency = st.session_state.classification.get("urgency_tier", "—")
-        color = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}.get(urgency, "⚪")
+        color   = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}.get(urgency, "⚪")
         st.metric("Urgency", f"{color} {urgency}")
 
 st.divider()
 
 
 # =====================================================================
-# 5. INPUT CAPTURE AREA
+# 7. INPUT AREA (shown only before first run)
 # =====================================================================
 if not st.session_state.transcript:
     cap_col, exam_col = st.columns([1.1, 1], gap="large")
@@ -383,9 +928,9 @@ if not st.session_state.transcript:
             label_visibility="collapsed"
         )
 
-        temp_audio_filename = "active_stream_input.wav"
+        temp_audio_filename   = "active_stream_input.wav"
         has_valid_audio_payload = False
-        bypass_audio_stt = False
+        bypass_audio_stt      = False
         injected_text_payload = ""
 
         if "Text" in input_vector:
@@ -397,7 +942,7 @@ if not st.session_state.transcript:
             )
             if injected_text_payload.strip():
                 has_valid_audio_payload = True
-                bypass_audio_stt = True
+                bypass_audio_stt        = True
 
         elif "Microphone" in input_vector:
             audio_file = st.audio_input("Record")
@@ -418,13 +963,13 @@ if not st.session_state.transcript:
                         json_data = json.load(uploaded_file)
                         if isinstance(json_data, list):
                             st.success(f"{len(json_data)} cases loaded")
-                            case_idx = st.number_input("Case index", min_value=0, max_value=len(json_data)-1, value=0)
+                            case_idx      = st.number_input("Case index", min_value=0, max_value=len(json_data)-1, value=0)
                             selected_node = json_data[case_idx]
                             injected_text_payload = selected_node.get("input", selected_node.get("instruction", ""))
                             if injected_text_payload:
                                 st.caption(injected_text_payload[:200] + "…")
                                 has_valid_audio_payload = True
-                                bypass_audio_stt = True
+                                bypass_audio_stt        = True
                         else:
                             st.error("JSON must be a list of case objects.")
                     except Exception as json_err:
@@ -473,13 +1018,11 @@ if not st.session_state.transcript:
 
     st.divider()
 
-    # ── RUN BUTTON ──
-    run_disabled = not has_valid_audio_payload
     if st.button(
         "Run salience analysis",
         type="primary",
         use_container_width=True,
-        disabled=run_disabled
+        disabled=not has_valid_audio_payload
     ):
         if not groq_api_key or not gemini_api_key:
             st.error("API credentials missing. Add keys in the sidebar or configure vault secrets.")
@@ -487,14 +1030,13 @@ if not st.session_state.transcript:
             pipeline_start = time.time()
             with st.status("Running analysis pipeline…", expanded=True) as status:
                 try:
-                    # STAGE 1: STT
                     if bypass_audio_stt:
                         extracted_raw_text = injected_text_payload
                         st.write("✓ Text input ingested")
                     else:
                         st.write("Compressing audio…")
-                        raw_audio = AudioSegment.from_file(temp_audio_filename)
-                        processed_audio = raw_audio.set_channels(1).set_frame_rate(16000)
+                        raw_audio        = AudioSegment.from_file(temp_audio_filename)
+                        processed_audio  = raw_audio.set_channels(1).set_frame_rate(16000)
                         compressed_filename = "optimized_api_payload.mp3"
                         processed_audio.export(compressed_filename, format="mp3", bitrate="64k")
                         groq_client = Groq(api_key=groq_api_key, timeout=60.0)
@@ -504,11 +1046,10 @@ if not st.session_state.transcript:
                                 model="whisper-large-v3",
                                 response_format="text"
                             )
-                        if os.path.exists(temp_audio_filename): os.remove(temp_audio_filename)
-                        if os.path.exists(compressed_filename): os.remove(compressed_filename)
+                        if os.path.exists(temp_audio_filename):   os.remove(temp_audio_filename)
+                        if os.path.exists(compressed_filename):   os.remove(compressed_filename)
                         st.write("✓ Transcription complete")
 
-                    # STAGE 2: Gemini
                     st.write("Running clinical salience engine…")
                     genai.configure(api_key=gemini_api_key)
                     intelligence_engine = genai.GenerativeModel('gemini-2.5-flash')
@@ -542,14 +1083,14 @@ if not st.session_state.transcript:
                     )
                     parsed_payload = json.loads(response_package.text, strict=False)
 
-                    st.session_state.transcript = parsed_payload.get("cleaned_transcript", "")
-                    st.session_state.classification = parsed_payload.get("classification", {})
-                    st.session_state.salience_map = parsed_payload.get("salience_weight_map", [])
-                    st.session_state.soap_note = parsed_payload.get("structured_soap_chart", "")
-                    st.session_state.flags = parsed_payload.get("clinical_safety_red_flags", [])
-                    st.session_state.next_steps = parsed_payload.get("suggested_next_steps", [])
-                    st.session_state.pipeline_execution_time = round(time.time() - pipeline_start, 2)
-                    st.session_state.chart_locked = False
+                    st.session_state.transcript               = parsed_payload.get("cleaned_transcript", "")
+                    st.session_state.classification           = parsed_payload.get("classification", {})
+                    st.session_state.salience_map             = parsed_payload.get("salience_weight_map", [])
+                    st.session_state.soap_note                = parsed_payload.get("structured_soap_chart", "")
+                    st.session_state.flags                    = parsed_payload.get("clinical_safety_red_flags", [])
+                    st.session_state.next_steps               = parsed_payload.get("suggested_next_steps", [])
+                    st.session_state.pipeline_execution_time  = round(time.time() - pipeline_start, 2)
+                    st.session_state.chart_locked             = False
 
                     status.update(label="Analysis complete", state="complete", expanded=False)
                     st.rerun()
@@ -558,35 +1099,37 @@ if not st.session_state.transcript:
                     status.update(label="Pipeline error", state="error")
                     st.error(f"Error: {e}")
 
-    if run_disabled:
+    if not has_valid_audio_payload:
         st.caption("Add a transcript or audio recording above to enable analysis.")
 
 
 # =====================================================================
-# 6. OUTPUT WORKSPACE
+# 8. OUTPUT WORKSPACE
 # =====================================================================
 if st.session_state.transcript:
 
     urgency = st.session_state.classification.get("urgency_tier", "")
     trigger = st.session_state.classification.get("primary_clinical_trigger", "")
 
-    # ── Urgency banner ──
-    if urgency == "CRITICAL":
+    # Urgency banner
+    _tier_map = {
+        "CRITICAL": ("alert-critical", "⬤ Critical — immediate action required"),
+        "HIGH":     ("alert-high",     "⬤ High priority"),
+        "MEDIUM":   ("alert-medium",   "⬤ Medium priority"),
+        "LOW":      ("alert-info",     "⬤ Low urgency"),
+    }
+    if urgency in _tier_map:
+        css_class, label_text = _tier_map[urgency]
         st.markdown(f"""
-        <div class="urgency-critical">
-            <div class="urgency-label">⬤ Critical</div>
-            <div class="urgency-desc">{trigger}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    elif urgency == "HIGH":
-        st.markdown(f"""
-        <div class="urgency-high">
-            <div class="urgency-label">⬤ High priority</div>
-            <div class="urgency-desc">{trigger}</div>
+        <div class="alert-shell {css_class}" role="alert" aria-live="assertive">
+            <div class="alert-rail"></div>
+            <div class="alert-body">
+                <div class="alert-tier">{label_text}</div>
+                <div class="alert-desc">{trigger}</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Output tabs ──
     out_tabs = st.tabs([
         "Key findings",
         "Red flags & next steps",
@@ -609,16 +1152,16 @@ if st.session_state.transcript:
                 for item in sorted_signals:
                     score = item.get("salience_score", 0)
                     if score >= 0.85:
-                        bar_color = "#E24B4A"
+                        bar_color = "var(--s-bar-critical)"
                     elif score >= 0.65:
-                        bar_color = "#EF9F27"
+                        bar_color = "var(--s-bar-high)"
                     else:
-                        bar_color = "#639922"
-
-                    bar_width = int(score * 60)
+                        bar_color = "var(--s-bar-low)"
+                    bar_width = max(4, int(score * 60))
                     st.markdown(f"""
                     <div class="signal-row">
-                        <div style="width:{bar_width}px;height:3px;border-radius:2px;background:{bar_color};flex-shrink:0;min-width:4px"></div>
+                        <div style="width:{bar_width}px;height:3px;border-radius:2px;
+                                    background:{bar_color};flex-shrink:0"></div>
                         <span class="signal-name">{item.get('entity','')}</span>
                         <span class="signal-cat">{item.get('category','')}</span>
                         <span class="signal-score">{score:.2f}</span>
@@ -643,7 +1186,10 @@ if st.session_state.transcript:
             st.markdown('<p class="panel-header">Safety flags</p>', unsafe_allow_html=True)
             if st.session_state.flags:
                 for flag in st.session_state.flags:
-                    st.markdown(f'<div class="flag-item">⚠ {flag}</div>', unsafe_allow_html=True)
+                    st.markdown(
+                        f'<div class="flag-item" role="alert">{flag}</div>',
+                        unsafe_allow_html=True
+                    )
             else:
                 st.success("No safety flags identified.")
 
@@ -653,7 +1199,8 @@ if st.session_state.transcript:
                 for i, step in enumerate(st.session_state.next_steps, 1):
                     st.markdown(f"""
                     <div class="step-item">
-                        <span style="opacity:0.35;font-size:11px;min-width:16px">{i}</span>
+                        <span style="opacity:0.35;font-size:11px;min-width:16px;
+                                     font-family:var(--s-font-mono)">{i}</span>
                         <span>{step}</span>
                     </div>
                     """, unsafe_allow_html=True)
@@ -664,27 +1211,20 @@ if st.session_state.transcript:
 
         with soap_col:
             st.markdown('<p class="panel-header">Clinical note — pending review</p>', unsafe_allow_html=True)
-
-            # Parse SOAP sections for display
-            soap_raw = st.session_state.soap_note
-            # Render the raw markdown for editing
             edited_soap = st.text_area(
                 "SOAP note",
-                value=soap_raw,
+                value=st.session_state.soap_note,
                 height=420,
                 label_visibility="collapsed"
             )
 
         with action_col:
             st.markdown('<p class="panel-header">Review & sign-off</p>', unsafe_allow_html=True)
-
             st.caption(
-                f"Processed {st.session_state.pipeline_execution_time}s ago · "
-                f"{specialty_profile}"
+                f"Processed {st.session_state.pipeline_execution_time}s ago · {specialty_profile}"
             )
             st.divider()
 
-            # PDF download
             try:
                 pdf_binary = generate_clinical_pdf(edited_soap, specialty_profile)
                 st.download_button(
@@ -699,7 +1239,6 @@ if st.session_state.transcript:
 
             st.divider()
 
-            # EHR sign-off
             if st.session_state.chart_locked:
                 st.success("Signed and pushed to EHR.")
                 st.button("Chart locked", disabled=True, use_container_width=True)
@@ -721,7 +1260,10 @@ if st.session_state.transcript:
 
     # ── TAB 4: Explainability ──
     with out_tabs[3]:
-        st.markdown('<p class="panel-header">Model reasoning — why these signals were prioritised</p>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="panel-header">Model reasoning — why these signals were prioritised</p>',
+            unsafe_allow_html=True
+        )
         if st.session_state.salience_map:
             for item in sorted(
                 st.session_state.salience_map,
@@ -730,21 +1272,22 @@ if st.session_state.transcript:
             ):
                 score = item.get("salience_score", 0)
                 if score >= 0.85:
-                    conf_class = "conf-hi"
-                    conf_label = "High"
+                    conf_class, conf_label = "conf-hi",  "High"
                 elif score >= 0.65:
-                    conf_class = "conf-med"
-                    conf_label = "Medium"
+                    conf_class, conf_label = "conf-med", "Medium"
                 else:
-                    conf_class = "conf-lo"
-                    conf_label = "Low"
+                    conf_class, conf_label = "conf-lo",  "Low"
 
                 st.markdown(f"""
                 <div class="explain-card">
                     <div class="explain-head">
                         <span class="{conf_class}">●</span>
                         {item.get('entity','')}
-                        <span style="margin-left:auto;font-size:10px;opacity:0.4">{conf_label} · {score:.2f}</span>
+                        <span style="margin-left:auto;font-size:10px;
+                                     color:var(--s-text-tertiary);
+                                     font-family:var(--s-font-mono)">
+                            {conf_label} · {score:.2f}
+                        </span>
                     </div>
                     <div class="explain-body">{item.get('reasoning_context','')}</div>
                 </div>
