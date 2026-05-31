@@ -1257,4 +1257,3 @@ if st.session_state.transcript:
                     <div class="explain-body">{item.get('reasoning_context','')}</div>
                 </div>
                 """, unsafe_allow_html=True)
-```
