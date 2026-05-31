@@ -265,7 +265,7 @@ h1, h2, h3, h4 {
 p, span, div, label {
     font-family: var(--s-font-ui) !important;
 }
-#MainMenu, footer, header,
+#MainMenu, footer,
 [data-testid="stDecoration"],
 div[data-testid="stToolbar"] {
     visibility: hidden !important;
@@ -284,7 +284,10 @@ div[data-testid="stToolbar"] {
     border-right: 1px solid var(--s-sidebar-border) !important;
     transition: var(--s-transition);
 }
-[data-testid="stSidebar"] * {
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown {
     color: var(--s-sidebar-text) !important;
     font-family: var(--s-font-ui) !important;
     transition: var(--s-transition);
@@ -856,11 +859,14 @@ with st.sidebar:
 
     st.markdown('<div class="sb-section-label">Clinical context</div>', unsafe_allow_html=True)
     specialty_profile = st.selectbox(
-        "Specialty",
+        "Specialty profile",
         ["Cardiology Clinic", "General Internal Medicine", "Emergency Trauma",
          "Neurology", "Pediatrics", "Orthopedic Surgery",
          "Psychiatry & Behavioral Health", "Oncology"],
-        label_visibility="collapsed"
+    )
+    target_language = st.selectbox(
+        "Language matrix",
+        ["Mixed (Multi-lingual Code-Switching)", "English (US/UK)", "Arabic (Khaleeji/MSA)"],
     )
     target_language = st.selectbox(
         "Language matrix",
