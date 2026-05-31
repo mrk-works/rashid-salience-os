@@ -51,61 +51,60 @@ def sanitize_for_pdf(text):
     return text.encode('latin-1', errors='replace').decode('latin-1')
 
 def generate_clinical_pdf(soap_text, specialty):
-    """
-    Parses structural text streams and renders an elegant,
-    high-contrast medical PDF chart safe from character encoding crashes.
-    """
     pdf = FPDF()
+    pdf.set_margins(left=15, top=10, right=15)   # ← explicit safe margins
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-    
+
     # Header Banner Block
-    pdf.set_fill_color(2, 132, 199) # Premium Clinical Blue Theme
+    pdf.set_fill_color(2, 132, 199)
     pdf.rect(0, 0, 210, 38, 'F')
-    
+
+    pdf.set_xy(0, 8)   # ← use set_xy instead of relying on cursor drift
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(0, 12, "SALIENCE OS | CLINICAL NOTE MATRIX", ln=True, align="C")
-    
+    pdf.cell(210, 12, "SALIENCE OS | CLINICAL NOTE MATRIX", ln=True, align="C")
+
     pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 5, sanitize_for_pdf(f"Specialty Vector Profile: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"), ln=True, align="C")
-    pdf.ln(15)
-    
-    # Body Parameters Reset
-    pdf.set_text_color(15, 23, 42) # Slate-900 Dark Neutral
-    
-    # Sequential structural line reading loop
+    pdf.cell(210, 5, sanitize_for_pdf(
+        f"Specialty: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    ), ln=True, align="C")
+
+    # Reset cursor below the banner with safe left margin
+    pdf.set_xy(15, 45)
+    pdf.set_text_color(15, 23, 42)
+
+    effective_width = pdf.w - pdf.l_margin - pdf.r_margin   # ← precompute safe width
+
     for line in soap_text.split("\n"):
         line_clean = line.strip()
         if not line_clean:
             pdf.ln(3)
             continue
-            
-        # Parse Level-3 Headers (e.g. ### Subjective:)
+
+        pdf.set_x(pdf.l_margin)   # ← always reset X before writing
+
         if line_clean.startswith("###"):
             pdf.ln(4)
             pdf.set_font("Helvetica", "B", 14)
-            pdf.set_text_color(2, 132, 199) # Subheaders in clinical blue
+            pdf.set_text_color(2, 132, 199)
             header_text = line_clean.replace("###", "").replace(":", "").strip()
-            pdf.cell(0, 10, sanitize_for_pdf(header_text.upper()), ln=True)
-            # Add subtle underline accent
-            pdf.line(pdf.get_x(), pdf.get_y(), pdf.get_x() + 40, pdf.get_y())
+            pdf.cell(effective_width, 10, sanitize_for_pdf(header_text.upper()), ln=True)
+            x = pdf.l_margin
+            pdf.line(x, pdf.get_y(), x + 40, pdf.get_y())
             pdf.ln(2)
-            pdf.set_text_color(15, 23, 42) # Reset to dark text
-            
-        # Parse Level-2 Headers or bold category blocks
+            pdf.set_text_color(15, 23, 42)
+
         elif line_clean.startswith("**") and line_clean.endswith("**"):
             pdf.set_font("Helvetica", "B", 11)
             bold_text = line_clean.replace("**", "").strip()
-            pdf.cell(0, 7, sanitize_for_pdf(bold_text), ln=True)
-            
+            pdf.cell(effective_width, 7, sanitize_for_pdf(bold_text), ln=True)
+
         else:
             pdf.set_font("Helvetica", size=10)
-            # Strip remaining raw string inline markdown syntax anomalies
             sanitized_body_line = line_clean.replace("**", "").replace("*", "-")
-            pdf.multi_cell(0, 6, sanitize_for_pdf(sanitized_body_line))
-            
-    # Output byte array sequence payload
+            pdf.multi_cell(effective_width, 6, sanitize_for_pdf(sanitized_body_line))
+
     return pdf.output()
 
 # =====================================================================
