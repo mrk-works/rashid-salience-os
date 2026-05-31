@@ -3,4 +3,4 @@ groq
 google-generativeai
 pandas
 pydub
-audioop-lts
+fpdf2
