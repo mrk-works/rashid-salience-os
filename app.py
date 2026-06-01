@@ -1,6 +1,3 @@
-Here is the complete updated file. The only structural changes are: sidebar removed, top bar added with specialty badge + three icon buttons, settings drawer implemented as a slide-over overlay, focus mode added as a session state toggle. All backend logic, prompts, pipelines, and data structures are identical to the previous version.
-
-```python
 # SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub stability
 import sys
 try:
@@ -1438,4 +1435,3 @@ if st.session_state.transcript:
                     """, unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-```
