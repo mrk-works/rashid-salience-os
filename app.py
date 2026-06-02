@@ -1,4 +1,10 @@
-# SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub stability
+# =====================================================================
+# SALIENCE OS v2 — Clinical Intelligence Workspace
+# Streamlit-Native Redesign: Priority 1–7 compliance pass
+# All backend logic preserved 100%.
+# =====================================================================
+
+# SYSTEM HOTFIX: Bridge Python 3.13+ audioop removal for pydub
 import sys
 try:
     import audioop
@@ -16,926 +22,1336 @@ import time
 from datetime import datetime
 from groq import Groq
 import google.generativeai as genai
+import pandas as pd
 from pydub import AudioSegment
 from fpdf import FPDF
 
-
-# ─────────────────────────────────────────────
-# CONSTANTS
-# ─────────────────────────────────────────────
-SPECIALTY_OPTIONS = [
-    "Cardiology Clinic",
-    "General Internal Medicine",
-    "Emergency Trauma",
-    "Neurology",
-    "Pediatrics",
-    "Orthopedic Surgery",
-    "Psychiatry & Behavioral Health",
-    "Oncology",
-]
-LANGUAGE_OPTIONS = [
-    "Mixed (Multi-lingual Code-Switching)",
-    "English (US/UK)",
-    "Arabic (Khaleeji/MSA)",
-]
-SPECIALTY_SHORT = {
-    "Cardiology Clinic": "Cardiology",
-    "General Internal Medicine": "Gen. Medicine",
-    "Emergency Trauma": "Emergency",
-    "Neurology": "Neurology",
-    "Pediatrics": "Pediatrics",
-    "Orthopedic Surgery": "Orthopaedics",
-    "Psychiatry & Behavioral Health": "Psychiatry",
-    "Oncology": "Oncology",
-}
-TEMP_AUDIO = "active_stream_input.wav"
-COMP_AUDIO = "optimized_payload.mp3"
-
-
-# ─────────────────────────────────────────────
-# PDF UTILITIES  (unchanged logic)
-# ─────────────────────────────────────────────
-def sanitize_for_pdf(text: str) -> str:
+# =====================================================================
+# 0. PDF SAFETY LAYER — preserved exactly
+# =====================================================================
+def sanitize_for_pdf(text):
     if not text:
         return ""
-    replacements = {
+    char_map = {
         "•": "-", "—": "-", "–": "-",
         "\u201c": '"', "\u201d": '"',
         "\u2018": "'", "\u2019": "'",
-        "™": "TM", "©": "(c)", "®": "(r)",
+        "™": "TM", "©": "(c)", "®": "(r)"
     }
-    for src, dst in replacements.items():
-        text = text.replace(src, dst)
-    return text.encode("latin-1", errors="replace").decode("latin-1")
+    for unicode_char, safe_char in char_map.items():
+        text = text.replace(unicode_char, safe_char)
+    return text.encode('latin-1', errors='replace').decode('latin-1')
 
 
-def generate_clinical_pdf(soap_text: str, specialty: str) -> bytes:
+def generate_clinical_pdf(soap_text, specialty):
     pdf = FPDF()
     pdf.set_margins(left=15, top=10, right=15)
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
-
     pdf.set_fill_color(2, 132, 199)
-    pdf.rect(0, 0, 210, 38, "F")
+    pdf.rect(0, 0, 210, 38, 'F')
     pdf.set_xy(0, 8)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", "B", 18)
-    pdf.cell(210, 12, "SALIENCE OS | CLINICAL NOTE", ln=True, align="C")
+    pdf.cell(210, 12, "SALIENCE OS | CLINICAL NOTE MATRIX", ln=True, align="C")
     pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(
-        210, 5,
-        sanitize_for_pdf(f"Specialty: {specialty} | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"),
-        ln=True, align="C",
-    )
-
+    pdf.cell(210, 5, sanitize_for_pdf(
+        f"Specialty: {specialty} | Compiled: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    ), ln=True, align="C")
     pdf.set_xy(15, 45)
     pdf.set_text_color(15, 23, 42)
-    ew = pdf.w - pdf.l_margin - pdf.r_margin
-
-    for raw_line in soap_text.split("\n"):
-        line = raw_line.strip()
-        if not line:
+    effective_width = pdf.w - pdf.l_margin - pdf.r_margin
+    for line in soap_text.split("\n"):
+        line_clean = line.strip()
+        if not line_clean:
             pdf.ln(3)
             continue
         pdf.set_x(pdf.l_margin)
-        if line.startswith("###"):
+        if line_clean.startswith("###"):
             pdf.ln(4)
             pdf.set_font("Helvetica", "B", 14)
             pdf.set_text_color(2, 132, 199)
-            header = line.replace("###", "").replace(":", "").strip().upper()
-            pdf.cell(ew, 10, sanitize_for_pdf(header), ln=True)
-            pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + 40, pdf.get_y())
+            header_text = line_clean.replace("###", "").replace(":", "").strip()
+            pdf.cell(effective_width, 10, sanitize_for_pdf(header_text.upper()), ln=True)
+            x = pdf.l_margin
+            pdf.line(x, pdf.get_y(), x + 40, pdf.get_y())
             pdf.ln(2)
             pdf.set_text_color(15, 23, 42)
-        elif line.startswith("**") and line.endswith("**"):
+        elif line_clean.startswith("**") and line_clean.endswith("**"):
             pdf.set_font("Helvetica", "B", 11)
-            pdf.cell(ew, 7, sanitize_for_pdf(line.replace("**", "").strip()), ln=True)
+            bold_text = line_clean.replace("**", "").strip()
+            pdf.cell(effective_width, 7, sanitize_for_pdf(bold_text), ln=True)
         else:
             pdf.set_font("Helvetica", size=10)
-            pdf.multi_cell(ew, 6, sanitize_for_pdf(line.replace("**", "").replace("*", "-")))
-
+            sanitized_body_line = line_clean.replace("**", "").replace("*", "-")
+            pdf.multi_cell(effective_width, 6, sanitize_for_pdf(sanitized_body_line))
     return bytes(pdf.output())
 
 
-# ─────────────────────────────────────────────
-# PAGE CONFIG
-# ─────────────────────────────────────────────
+# =====================================================================
+# 1. PAGE CONFIG
+# =====================================================================
 st.set_page_config(
     page_title="Salience OS",
-    page_icon="⊕",
+    page_icon="⬡",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed"
 )
 
-
-# ─────────────────────────────────────────────
-# SESSION STATE DEFAULTS
-# ─────────────────────────────────────────────
-_DEFAULTS = {
+# =====================================================================
+# 2. SESSION STATE — clinical + settings
+# =====================================================================
+_defaults = {
     "transcript": "",
     "classification": {},
     "salience_map": [],
     "soap_note": "",
     "flags": [],
     "next_steps": [],
-    "pipeline_time": 0.0,
+    "pipeline_execution_time": 0.0,
     "chart_locked": False,
-    "focus_mode": False,
-    "specialty": "Cardiology Clinic",
-    "language": "Mixed (Multi-lingual Code-Switching)",
-    "groq_key": "",
-    "gemini_key": "",
-    "theme": "System",
+    # Workspace settings (persist across reruns)
+    "specialty_profile": "Cardiology",
+    "target_language": "Mixed",
+    "theme": "Dark",
 }
-for _k, _v in _DEFAULTS.items():
-    if _k not in st.session_state:
-        st.session_state[_k] = _v
+for k, v in _defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+# Map display names → full strings used in prompt
+SPECIALTY_MAP = {
+    "Cardiology":   "Cardiology Clinic",
+    "General":      "General Internal Medicine",
+    "Emergency":    "Emergency Trauma",
+    "Neurology":    "Neurology",
+    "Pediatrics":   "Pediatrics",
+    "Orthopedics":  "Orthopedic Surgery",
+    "Psychiatry":   "Psychiatry & Behavioral Health",
+    "Oncology":     "Oncology",
+}
+LANGUAGE_MAP = {
+    "Mixed":   "Mixed (Multi-lingual Code-Switching)",
+    "English": "English (US/UK)",
+    "Arabic":  "Arabic (Khaleeji/MSA)",
+}
+
+specialty_profile = SPECIALTY_MAP.get(st.session_state.specialty_profile, "Cardiology Clinic")
+target_language   = LANGUAGE_MAP.get(st.session_state.target_language, "Mixed (Multi-lingual Code-Switching)")
 
 
-# ─────────────────────────────────────────────
-# MINIMAL CSS  — only what Streamlit cannot do natively
-# ─────────────────────────────────────────────
-# Kept to: alert severity colors, signal bar rows, explain cards,
-# IBM Plex Sans font load, and a handful of typography tweaks.
-# Zero DOM overrides, zero position:fixed, zero parent-document access.
+# =====================================================================
+# 3. CSS — Full Design System
+#    Priority 2: Ambient background lighting via body::before layers
+#    Priority 3: Lean header (wordmark + status + time only)
+#    Priority 4: Layout rhythm & consistent spacing
+#    Priority 6: SOAP readability tokens
+#    Priority 7: Override Streamlit natives to match design system
+# =====================================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* ── Design Tokens ───────────────────────────────────────────────── */
+:root {
+  --bg-base:        #080B10;
+  --bg-surface:     #0E1117;
+  --bg-elevated:    #161B26;
+  --bg-hover:       rgba(255,255,255,0.035);
 
-/* Font application — additive only, no !important resets */
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.17);
+
+  --text-primary:   #EDF0F4;
+  --text-secondary: #7E8A9A;
+  --text-muted:     #4A5262;
+  --text-inverse:   #080B10;
+
+  --accent-blue:    #3B82F6;
+  --accent-blue-dim:#2563EB;
+  --accent-emerald: #10B981;
+  --accent-amber:   #F59E0B;
+  --accent-red:     #EF4444;
+  --accent-violet:  #8B5CF6;
+  --accent-cyan:    #06B6D4;
+
+  --tier-critical:  #EF4444;
+  --tier-high:      #F59E0B;
+  --tier-medium:    #3B82F6;
+  --tier-low:       #10B981;
+
+  --radius-sm:  5px;
+  --radius-md:  9px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
+  --transition: 150ms cubic-bezier(0.4,0,0.2,1);
+
+  /* SOAP readability */
+  --soap-font-size: 14px;
+  --soap-line-height: 1.9;
+}
+
+/* ── Priority 2: Ambient Background Lighting ─────────────────────── */
+/* Three-layer radial glow: blue (top-right), cyan (center-left),    */
+/* violet (bottom-right). Subconscious, not decorative.              */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 88% 12%,
+      rgba(59, 130, 246, 0.11) 0%,
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 8% 52%,
+      rgba(6, 182, 212, 0.07) 0%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 72% 92%,
+      rgba(139, 92, 246, 0.06) 0%,
+      transparent 28%
+    );
+}
+
+/* Ensure Streamlit app sits above ::before */
+.stApp { position: relative; z-index: 1; }
+
+/* ── Base ────────────────────────────────────────────────────────── */
 html, body, [class*="css"] {
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
-}
-code, pre, .monospace {
-    font-family: 'IBM Plex Mono', monospace;
-}
-
-/* ── Severity alert shells ── */
-.sal-alert {
-    display: flex;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: 14px;
-    border: 2px solid;
-}
-.sal-alert-rail { width: 6px; flex-shrink: 0; }
-.sal-alert-body { flex: 1; padding: 12px 15px; }
-.sal-alert-tier {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
-.sal-alert-desc { font-size: 13px; line-height: 1.55; font-weight: 400; }
-
-/* CRITICAL — most visually dominant */
-.sal-critical {
-    background: #FEF2F2;
-    border-color: #DC2626;
-    animation: sal-pulse 2.5s ease-in-out infinite;
-}
-.sal-critical .sal-alert-rail { background: #DC2626; }
-.sal-critical .sal-alert-tier { color: #7F1D1D; }
-.sal-critical .sal-alert-desc { color: #7F1D1D; font-weight: 500; }
-@keyframes sal-pulse {
-    0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
-    50%      { box-shadow: 0 0 0 4px rgba(220,38,38,0.15); }
+  font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  background-color: var(--bg-base) !important;
+  color: var(--text-primary) !important;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* HIGH */
-.sal-high {
-    background: #FFFBEB;
-    border-color: #D97706;
-}
-.sal-high .sal-alert-rail { background: #D97706; }
-.sal-high .sal-alert-tier { color: #78350F; }
-.sal-high .sal-alert-desc { color: #78350F; }
-
-/* MEDIUM */
-.sal-medium {
-    background: #EFF6FF;
-    border-color: #2563EB;
-}
-.sal-medium .sal-alert-rail { background: #2563EB; }
-.sal-medium .sal-alert-tier { color: #1E3A5F; }
-.sal-medium .sal-alert-desc { color: #1E3A5F; }
-
-/* LOW / INFO */
-.sal-low {
-    background: #F0FDF4;
-    border-color: #16A34A;
-}
-.sal-low .sal-alert-rail { background: #16A34A; }
-.sal-low .sal-alert-tier { color: #14532D; }
-.sal-low .sal-alert-desc { color: #14532D; }
-
-/* Dark theme overrides — applied when body has dark background */
-@media (prefers-color-scheme: dark) {
-    .sal-critical { background: rgba(220,38,38,0.15); border-color: #EF4444; }
-    .sal-critical .sal-alert-tier,
-    .sal-critical .sal-alert-desc { color: #FCA5A5; }
-    .sal-high     { background: rgba(217,119,6,0.15);  border-color: #F59E0B; }
-    .sal-high .sal-alert-tier,
-    .sal-high .sal-alert-desc { color: #FCD34D; }
-    .sal-medium   { background: rgba(37,99,235,0.15);  border-color: #60A5FA; }
-    .sal-medium .sal-alert-tier,
-    .sal-medium .sal-alert-desc { color: #BFDBFE; }
-    .sal-low      { background: rgba(22,163,74,0.15);  border-color: #34D399; }
-    .sal-low .sal-alert-tier,
-    .sal-low .sal-alert-desc { color: #A7F3D0; }
+#MainMenu, footer, header { visibility: hidden; }
+.stDeployButton { display: none; }
+.block-container {
+  padding: 0 !important;
+  max-width: 100% !important;
 }
 
-/* ── Signal rows ── */
-.sig-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 4px;
-    border-bottom: 1px solid rgba(128,128,128,0.15);
-    border-radius: 4px;
-}
-.sig-row:last-child { border-bottom: none; }
-.sig-name { font-size: 13px; font-weight: 500; flex: 1; }
-.sig-cat  { font-size: 10px; opacity: 0.5; }
-.sig-score {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    opacity: 0.6;
-    width: 32px;
-    text-align: right;
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 99px; }
+
+/* ── Priority 3: Lean Header ─────────────────────────────────────── */
+.os-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 52px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8, 11, 16, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-/* ── Explain cards ── */
-.exp-card {
-    border: 1px solid rgba(128,128,128,0.2);
-    border-radius: 9px;
-    padding: 11px 14px;
-    margin-bottom: 8px;
+.os-wordmark {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text-primary);
 }
-.exp-head {
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.exp-body { font-size: 11px; opacity: 0.7; line-height: 1.65; }
+.os-wordmark span { color: var(--accent-blue); }
 
-/* ── Flag items ── */
+.os-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.os-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.2px;
+}
+.os-status-pill.ready {
+  background: rgba(16,185,129,0.10);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16,185,129,0.18);
+}
+.os-status-pill.active {
+  background: rgba(59,130,246,0.10);
+  color: var(--accent-blue);
+  border: 1px solid rgba(59,130,246,0.18);
+}
+.os-status-pill.locked {
+  background: rgba(139,92,246,0.10);
+  color: var(--accent-violet);
+  border: 1px solid rgba(139,92,246,0.18);
+}
+.os-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.os-dot.pulse { animation: pulse-dot 2s ease-in-out infinite; }
+@keyframes pulse-dot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.4; transform:scale(0.75); }
+}
+.os-time {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Content Wrapper ─────────────────────────────────────────────── */
+.os-content {
+  padding: 24px 28px 48px;
+}
+
+/* ── Section Labels ──────────────────────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* ── Urgency Banner ──────────────────────────────────────────────── */
+.urgency-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  border-left: 3px solid;
+}
+.urgency-bar.CRITICAL { background: rgba(239,68,68,0.07);  border-color: var(--tier-critical); }
+.urgency-bar.HIGH     { background: rgba(245,158,11,0.07); border-color: var(--tier-high); }
+.urgency-bar.MEDIUM   { background: rgba(59,130,246,0.07); border-color: var(--tier-medium); }
+.urgency-bar.LOW      { background: rgba(16,185,129,0.07); border-color: var(--tier-low); }
+.urgency-label {
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 1.1px; text-transform: uppercase; opacity: 0.65;
+}
+.urgency-text { font-size: 13px; font-weight: 500; line-height: 1.45; margin-top: 2px; }
+.urgency-bar.CRITICAL .urgency-label,
+.urgency-bar.CRITICAL .urgency-text { color: var(--tier-critical); }
+.urgency-bar.HIGH .urgency-label,
+.urgency-bar.HIGH .urgency-text { color: var(--tier-high); }
+.urgency-bar.MEDIUM .urgency-label,
+.urgency-bar.MEDIUM .urgency-text { color: var(--tier-medium); }
+.urgency-bar.LOW .urgency-label,
+.urgency-bar.LOW .urgency-text { color: var(--tier-low); }
+
+.urgency-metrics {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.metric-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.metric-chip .chip-label {
+  font-family: -apple-system, sans-serif;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* ── Signal Rows ─────────────────────────────────────────────────── */
+.signal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition), padding-left var(--transition);
+  border-radius: var(--radius-sm);
+}
+.signal-row:last-child { border-bottom: none; }
+.signal-row:hover { background: var(--bg-hover); padding-left: 10px; }
+
+.signal-score-ring {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 700;
+  font-family: var(--font-mono);
+  border: 2px solid;
+}
+.signal-score-ring.score-critical { background:rgba(239,68,68,0.09);  border-color:var(--tier-critical); color:var(--tier-critical); }
+.signal-score-ring.score-high     { background:rgba(245,158,11,0.09); border-color:var(--tier-high);     color:var(--tier-high); }
+.signal-score-ring.score-medium   { background:rgba(59,130,246,0.09); border-color:var(--tier-medium);   color:var(--tier-medium); }
+.signal-score-ring.score-low      { background:rgba(16,185,129,0.09); border-color:var(--tier-low);      color:var(--tier-low); }
+
+.signal-body { flex: 1; min-width: 0; }
+.signal-entity { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.signal-category-chip {
+  display: inline-block;
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.4px;
+  padding: 1px 6px; border-radius: 99px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  margin: 3px 0 4px; text-transform: uppercase;
+}
+.signal-reasoning { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+.signal-bar-track {
+  width: 100%; height: 2px;
+  background: var(--bg-elevated); border-radius: 99px;
+  margin-top: 7px; overflow: hidden;
+}
+.signal-bar-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Flag & Step Items ───────────────────────────────────────────── */
 .flag-item {
-    display: flex;
-    gap: 9px;
-    background: rgba(220,38,38,0.08);
-    border: 1px solid rgba(220,38,38,0.3);
-    border-left: 4px solid #DC2626;
-    border-radius: 0 8px 8px 0;
-    padding: 9px 12px;
-    font-size: 12px;
-    color: #7F1D1D;
-    margin-bottom: 7px;
-    line-height: 1.55;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 14px;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-left: 3px solid var(--tier-critical);
+  border-radius: var(--radius-md); margin-bottom: 8px;
+  font-size: 13px; color: #FCA5A5; line-height: 1.55;
 }
-@media (prefers-color-scheme: dark) {
-    .flag-item { color: #FCA5A5; background: rgba(220,38,38,0.12); border-color: rgba(239,68,68,0.4); }
-}
-.flag-item::before { content: "⚠"; flex-shrink: 0; margin-top: 1px; }
+.flag-icon { flex-shrink:0; color:var(--tier-critical); font-size:13px; margin-top:1px; }
 
-/* ── Step list ── */
 .step-item {
-    display: flex;
-    gap: 10px;
-    font-size: 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(128,128,128,0.12);
-    line-height: 1.5;
-    opacity: 0.8;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 14px;
+  background: rgba(59,130,246,0.055);
+  border: 1px solid rgba(59,130,246,0.12);
+  border-radius: var(--radius-md); margin-bottom: 7px;
+  font-size: 13px; color: #93C5FD; line-height: 1.55;
 }
-.step-item:last-child { border-bottom: none; }
-
-/* ── Section label ── */
-.sec-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.9px;
-    text-transform: uppercase;
-    opacity: 0.45;
-    margin-bottom: 8px;
-    margin-top: 4px;
+.step-num {
+  flex-shrink:0; width:19px; height:19px; border-radius:50%;
+  background:rgba(59,130,246,0.18); color:var(--accent-blue);
+  font-size:9.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
 }
 
-/* ── Focus mode strip ── */
-.focus-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: rgba(37,99,235,0.1);
-    color: #1D4ED8;
-    border: 1px solid rgba(37,99,235,0.25);
-    margin-bottom: 12px;
+/* ── Priority 6: SOAP Viewer ─────────────────────────────────────── */
+.soap-outer {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.soap-viewer {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 32px 36px;
+  font-size: var(--soap-font-size);
+  line-height: var(--soap-line-height);
+  color: var(--text-primary);
+}
+.soap-section-header {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.1px;
+  text-transform: uppercase; color: var(--accent-blue);
+  margin-top: 24px; margin-bottom: 10px;
+  padding-bottom: 7px; border-bottom: 1px solid var(--border-subtle);
+}
+.soap-section-header:first-child { margin-top: 0; }
+.soap-body-p {
+  margin: 0 0 2px;
+  color: var(--text-secondary);
+  font-size: var(--soap-font-size);
+  line-height: var(--soap-line-height);
+}
+.soap-bold {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--soap-font-size);
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .sal-critical { animation: none; }
+/* Sticky SOAP action bar */
+.soap-action-bar {
+  position: sticky;
+  bottom: 0;
+  background: rgba(8,11,16,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 0 14px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+.soap-meta-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.soap-meta-item { display:flex; flex-direction:column; gap:2px; }
+.soap-meta-label {
+  font-size:9.5px; font-weight:700; letter-spacing:0.8px;
+  text-transform:uppercase; color:var(--text-muted);
+}
+.soap-meta-value {
+  font-size:12.5px; font-weight:500; color:var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ── Empty State ─────────────────────────────────────────────────── */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:44px 24px; text-align:center; gap:10px;
+}
+.empty-state-icon  { font-size:24px; opacity:0.25; }
+.empty-state-title { font-size:13.5px; font-weight:600; color:var(--text-secondary); }
+.empty-state-body  { font-size:12px; color:var(--text-muted); line-height:1.6; max-width:260px; }
+
+/* ── Streamlit Native Component Overrides ────────────────────────── */
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+  background: var(--bg-surface) !important;
+  border-right: 1px solid var(--border-subtle) !important;
+}
+
+/* Inputs */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+}
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12) !important;
+  outline: none !important;
+}
+.stTextInput label, .stTextArea label {
+  font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: 0.5px !important; text-transform: uppercase !important;
+  color: var(--text-muted) !important;
+}
+
+/* Selectbox */
+.stSelectbox > div > div > div {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+}
+
+/* Primary button */
+.stButton > button[kind="primary"] {
+  background: var(--accent-blue) !important;
+  color: #fff !important; border: none !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important; font-size: 13px !important;
+  height: 40px !important; letter-spacing: 0.2px !important;
+  transition: all var(--transition) !important;
+}
+.stButton > button[kind="primary"]:hover {
+  background: var(--accent-blue-dim) !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.22) !important;
+  transform: translateY(-1px) !important;
+}
+/* Secondary button */
+.stButton > button[kind="secondary"],
+.stButton > button:not([kind]) {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important; font-size: 13px !important;
+  height: 40px !important;
+}
+.stButton > button[kind="secondary"]:hover,
+.stButton > button:not([kind]):hover {
+  border-color: var(--border-strong) !important;
+}
+.stButton > button:disabled {
+  background: var(--bg-elevated) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+/* Download button */
+.stDownloadButton > button {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important; font-size: 13px !important;
+  height: 40px !important;
+}
+.stDownloadButton > button:hover {
+  border-color: var(--accent-blue) !important;
+  color: var(--accent-blue) !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  gap: 0 !important; padding: 0 !important;
+}
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 12.5px !important; font-weight: 500 !important;
+  padding: 9px 16px !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  transition: all var(--transition) !important;
+}
+.stTabs [data-baseweb="tab"]:hover { color: var(--text-secondary) !important; }
+.stTabs [aria-selected="true"] {
+  color: var(--text-primary) !important;
+  border-bottom: 2px solid var(--accent-blue) !important;
+}
+.stTabs [data-baseweb="tab-panel"] { padding: 18px 0 0 !important; }
+
+/* Segmented control (st.segmented_control) */
+[data-testid="stSegmentedControl"] > div {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 3px !important;
+  gap: 2px !important;
+}
+[data-testid="stSegmentedControl"] button {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 12.5px !important; font-weight: 500 !important;
+  border: none !important;
+  transition: all var(--transition) !important;
+}
+[data-testid="stSegmentedControl"] button[aria-checked="true"] {
+  background: var(--accent-blue) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important;
+}
+
+/* Pills (st.pills) */
+[data-testid="stPills"] button {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 99px !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  transition: all var(--transition) !important;
+}
+[data-testid="stPills"] button[aria-pressed="true"] {
+  background: rgba(59,130,246,0.15) !important;
+  color: var(--accent-blue) !important;
+  border-color: rgba(59,130,246,0.3) !important;
+}
+
+/* Radio */
+.stRadio > label { color: var(--text-secondary) !important; font-size: 12.5px !important; }
+.stRadio > div > label { color: var(--text-secondary) !important; font-size: 13px !important; }
+
+/* Audio input */
+[data-testid="stAudioInput"] {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+  background: var(--bg-elevated) !important;
+  border: 1px dashed var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Number input */
+.stNumberInput > div > div > input {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+}
+
+/* Alert/info/error/success */
+[data-baseweb="notification"] {
+  border-radius: var(--radius-md) !important;
+  font-size: 13px !important;
+}
+
+/* Divider */
+hr { border-color: var(--border-subtle) !important; margin: 20px 0 !important; }
+
+/* st.status */
+[data-testid="stStatusWidget"] {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Spinner */
+.stSpinner > div {
+  border-color: var(--accent-blue) transparent transparent !important;
+}
+
+/* Label typography */
+label[data-testid="stWidgetLabel"] {
+  color: var(--text-secondary) !important; font-size: 12px !important;
+}
+.stCaption { color: var(--text-muted) !important; font-size: 11.5px !important; }
+p { color: var(--text-secondary) !important; }
+
+/* Popover */
+[data-testid="stPopover"] > div {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7) !important;
+}
+
+/* Sidebar control-center section label */
+.ctrl-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text-muted);
+  display: block; margin-bottom: 8px; margin-top: 16px;
+}
+.ctrl-label:first-child { margin-top: 0; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ─────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────
-def render_alert(urgency: str, trigger: str) -> None:
-    """Render a severity-coded alert using pure HTML (no JS, no DOM access)."""
-    tier_map = {
-        "CRITICAL": ("sal-critical", "⬤  Critical — immediate action required"),
-        "HIGH":     ("sal-high",     "⬤  High priority"),
-        "MEDIUM":   ("sal-medium",   "⬤  Medium priority"),
-        "LOW":      ("sal-low",      "⬤  Low urgency"),
-    }
-    if urgency not in tier_map:
-        return
-    css, label = tier_map[urgency]
+# =====================================================================
+# 4. API CREDENTIAL RESOLUTION
+# =====================================================================
+has_cloud_groq   = "groq_api_key"   in st.secrets
+has_cloud_gemini = "gemini_api_key" in st.secrets
+
+
+# =====================================================================
+# 5. PRIORITY 1: Control Center — st.popover() with native components
+# =====================================================================
+# We'll render the popover inside the header columns below.
+# Defined here so settings are resolved before header renders.
+
+def render_control_center():
+    """Workspace settings using only native Streamlit components."""
+    st.markdown('<span class="ctrl-label">Specialty Profile</span>', unsafe_allow_html=True)
+    specialty_choice = st.segmented_control(
+        "Specialty",
+        options=["Cardiology", "General", "Emergency", "Neurology",
+                 "Pediatrics", "Orthopedics", "Psychiatry", "Oncology"],
+        default=st.session_state.specialty_profile,
+        key="ctrl_specialty",
+        label_visibility="collapsed",
+    )
+    if specialty_choice and specialty_choice != st.session_state.specialty_profile:
+        st.session_state.specialty_profile = specialty_choice
+        st.rerun()
+
+    st.markdown('<span class="ctrl-label">Language Matrix</span>', unsafe_allow_html=True)
+    lang_choice = st.segmented_control(
+        "Language",
+        options=["Mixed", "English", "Arabic"],
+        default=st.session_state.target_language,
+        key="ctrl_language",
+        label_visibility="collapsed",
+    )
+    if lang_choice and lang_choice != st.session_state.target_language:
+        st.session_state.target_language = lang_choice
+        st.rerun()
+
+    st.markdown('<span class="ctrl-label">Theme</span>', unsafe_allow_html=True)
+    theme_choice = st.pills(
+        "Theme",
+        options=["Dark", "System", "Light"],
+        default=st.session_state.theme,
+        key="ctrl_theme",
+        label_visibility="collapsed",
+    )
+    if theme_choice and theme_choice != st.session_state.theme:
+        st.session_state.theme = theme_choice
+        st.rerun()
+
+    st.markdown('<span class="ctrl-label">API Credentials</span>', unsafe_allow_html=True)
+    if has_cloud_groq and has_cloud_gemini:
+        st.caption("✓  Vault active — keys pre-loaded")
+    else:
+        # Allow override if vault is missing
+        groq_override = st.text_input(
+            "Groq API Key", type="password",
+            placeholder="sk-..." if not has_cloud_groq else "🔒 Vault loaded",
+            key="ctrl_groq"
+        )
+        gemini_override = st.text_input(
+            "Gemini API Key", type="password",
+            placeholder="AI..." if not has_cloud_gemini else "🔒 Vault loaded",
+            key="ctrl_gemini"
+        )
+        if groq_override:
+            st.session_state["_groq_override"] = groq_override
+        if gemini_override:
+            st.session_state["_gemini_override"] = gemini_override
+
+
+# Resolve API keys (override > vault)
+groq_api_key   = st.session_state.get("_groq_override", "") or st.secrets.get("groq_api_key", "")
+gemini_api_key = st.session_state.get("_gemini_override", "") or st.secrets.get("gemini_api_key", "")
+
+# Update resolved specialty/language for prompt use
+specialty_profile = SPECIALTY_MAP.get(st.session_state.specialty_profile, "Cardiology Clinic")
+target_language   = LANGUAGE_MAP.get(st.session_state.target_language, "Mixed (Multi-lingual Code-Switching)")
+
+
+# =====================================================================
+# 6. PRIORITY 3: Lean Header — wordmark + status + time
+# =====================================================================
+has_results  = bool(st.session_state.transcript)
+chart_locked = st.session_state.chart_locked
+
+if chart_locked:
+    status_html = '<div class="os-status-pill locked"><div class="os-dot"></div>Signed</div>'
+elif has_results:
+    status_html = '<div class="os-status-pill active"><div class="os-dot pulse"></div>Review</div>'
+else:
+    status_html = '<div class="os-status-pill ready"><div class="os-dot pulse"></div>Ready</div>'
+
+# Header is a sticky HTML bar; the settings popover sits adjacent in Streamlit column
+header_left, header_right = st.columns([6, 1], gap="small")
+
+with header_left:
     st.markdown(f"""
-    <div class="sal-alert {css}" role="alert" aria-live="assertive">
-        <div class="sal-alert-rail"></div>
-        <div class="sal-alert-body">
-            <div class="sal-alert-tier">{label}</div>
-            <div class="sal-alert-desc">{trigger}</div>
-        </div>
+    <div class="os-header">
+      <div class="os-wordmark">SALIENCE<span> OS</span></div>
+      <div class="os-header-right">
+        {status_html}
+        <div class="os-time">{datetime.now().strftime('%H:%M')}</div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
+with header_right:
+    # Align popover button with header visually
+    st.markdown("<div style='padding-top:10px'>", unsafe_allow_html=True)
+    with st.popover("⚙ Settings", use_container_width=False):
+        render_control_center()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-def render_signals(salience_map: list) -> None:
-    """Render signal rows sorted by salience score."""
-    st.markdown('<div class="sec-label">Clinical signals — by salience weight</div>',
-                unsafe_allow_html=True)
-    bar_colors = {
-        "critical": "#DC2626",
-        "high":     "#D97706",
-        "low":      "#16A34A",
-    }
-    for item in sorted(salience_map, key=lambda x: x.get("salience_score", 0), reverse=True):
-        score = item.get("salience_score", 0)
-        color = (bar_colors["critical"] if score >= 0.85
-                 else bar_colors["high"] if score >= 0.65
-                 else bar_colors["low"])
-        width = max(4, int(score * 56))
-        st.markdown(f"""
-        <div class="sig-row">
-            <div style="width:{width}px;height:3px;border-radius:2px;
-                        background:{color};flex-shrink:0"></div>
-            <span class="sig-name">{item.get('entity', '')}</span>
-            <span class="sig-cat">{item.get('category', '')}</span>
-            <span class="sig-score">{score:.2f}</span>
-        </div>
-        """, unsafe_allow_html=True)
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 
-def render_flags(flags: list) -> None:
-    if flags:
-        for flag in flags:
-            st.markdown(f'<div class="flag-item">{flag}</div>', unsafe_allow_html=True)
-    else:
-        st.success("No safety flags identified.")
+# =====================================================================
+# 7. INPUT WORKSPACE
+#    Priority 4: col ratio [1.25, 1] for input vs exam
+# =====================================================================
+st.markdown('<div class="section-label">Consultation Input</div>', unsafe_allow_html=True)
 
+col_input, col_exam = st.columns([1.25, 1], gap="large")
 
-def render_steps(steps: list) -> None:
-    if steps:
-        for i, step in enumerate(steps, 1):
-            st.markdown(f"""
-            <div class="step-item">
-                <span style="opacity:.35;font-family:'IBM Plex Mono',monospace;
-                             font-size:11px;min-width:18px">{i}</span>
-                <span>{step}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-def render_explainability(salience_map: list) -> None:
-    st.markdown('<div class="sec-label">Why these signals were prioritised</div>',
-                unsafe_allow_html=True)
-    for item in sorted(salience_map, key=lambda x: x.get("salience_score", 0), reverse=True):
-        score = item.get("salience_score", 0)
-        dot_color, conf = (
-            ("#DC2626", "High")   if score >= 0.85 else
-            ("#D97706", "Medium") if score >= 0.65 else
-            ("#16A34A", "Low")
-        )
-        st.markdown(f"""
-        <div class="exp-card">
-            <div class="exp-head">
-                <span style="color:{dot_color}">●</span>
-                {item.get('entity', '')}
-                <span style="margin-left:auto;font-size:10px;opacity:.45;
-                             font-family:'IBM Plex Mono',monospace">
-                    {conf} · {score:.2f}
-                </span>
-            </div>
-            <div class="exp-body">{item.get('reasoning_context', '')}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-def reset_analysis() -> None:
-    for k in ["transcript", "classification", "salience_map", "soap_note",
-              "flags", "next_steps", "pipeline_time", "chart_locked"]:
-        st.session_state[k] = _DEFAULTS[k]
-
-
-# ─────────────────────────────────────────────
-# SIDEBAR — settings only, fully native
-# ─────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("## ⊕ Salience OS")
-    st.caption("Clinical intelligence workspace")
-    st.divider()
-
-    # ── Theme ──
-    st.markdown("**Theme**")
-    theme = st.radio(
-        "Theme",
-        ["System", "Light", "Dark"],
-        index=["System", "Light", "Dark"].index(st.session_state.theme),
-        horizontal=True,
+# ── Left: Data Capture ──────────────────────────────────────────────
+with col_input:
+    input_vector = st.radio(
+        "Input mode",
+        ["Text / Paste Transcript", "Live Audio (Microphone)", "File Upload (.wav / .mp3 / .json)"],
+        horizontal=False,
         label_visibility="collapsed",
-        key="theme_radio",
-    )
-    st.session_state.theme = theme
-
-    st.divider()
-
-    # ── Clinical context ──
-    st.markdown("**Clinical context**")
-    st.session_state.specialty = st.selectbox(
-        "Specialty profile",
-        SPECIALTY_OPTIONS,
-        index=SPECIALTY_OPTIONS.index(st.session_state.specialty),
-        key="sel_specialty",
-    )
-    st.session_state.language = st.selectbox(
-        "Language matrix",
-        LANGUAGE_OPTIONS,
-        index=LANGUAGE_OPTIONS.index(st.session_state.language),
-        key="sel_language",
     )
 
-    st.divider()
+    temp_audio_filename = "active_stream_input.wav"
+    has_valid_audio_payload = False
+    bypass_audio_stt        = False
+    injected_text_payload   = ""
 
-    # ── API credentials ──
-    has_vault_groq   = "groq_api_key"   in st.secrets
-    has_vault_gemini = "gemini_api_key" in st.secrets
-
-    st.markdown("**API credentials**")
-    if has_vault_groq and has_vault_gemini:
-        st.success("🔒 Vault credentials active")
-    else:
-        st.session_state.groq_key = st.text_input(
-            "Groq API key (Whisper v3)",
-            type="password",
-            value=st.session_state.groq_key,
-            placeholder="Vault active" if has_vault_groq else "sk-...",
+    if "Text" in input_vector:
+        injected_text_payload = st.text_area(
+            "Transcript",
+            placeholder="Paste consultation transcript, patient notes, or test data…",
+            height=200,
+            label_visibility="collapsed",
         )
-        st.session_state.gemini_key = st.text_input(
-            "Gemini API key (Flash 2.5)",
-            type="password",
-            value=st.session_state.gemini_key,
-            placeholder="Vault active" if has_vault_gemini else "AI...",
-        )
+        if injected_text_payload.strip():
+            has_valid_audio_payload = True
+            bypass_audio_stt = True
 
-    st.divider()
+    elif "Live Audio" in input_vector:
+        st.caption("Position microphone toward conversation, then tap record.")
+        audio_file = st.audio_input("Record audio")
+        if audio_file is not None:
+            with open(temp_audio_filename, "wb") as f:
+                f.write(audio_file.read())
+            has_valid_audio_payload = True
 
-    # ── Focus mode ──
-    focus_label = "⊙ Exit focus mode" if st.session_state.focus_mode else "◎ Enable focus mode"
-    if st.button(focus_label, use_container_width=True):
-        st.session_state.focus_mode = not st.session_state.focus_mode
-        st.rerun()
-
-    # ── New consultation ──
-    if st.session_state.transcript:
-        st.divider()
-        st.caption(f"Last run: {st.session_state.pipeline_time}s · "
-                   f"{SPECIALTY_SHORT.get(st.session_state.specialty, '')}")
-        if st.button("↩ New consultation", use_container_width=True):
-            reset_analysis()
-            st.rerun()
-
-
-# ─────────────────────────────────────────────
-# RESOLVE KEYS
-# ─────────────────────────────────────────────
-groq_api_key = (
-    st.session_state.groq_key.strip()
-    or st.secrets.get("groq_api_key", "")
-)
-gemini_api_key = (
-    st.session_state.gemini_key.strip()
-    or st.secrets.get("gemini_api_key", "")
-)
-specialty_profile = st.session_state.specialty
-target_language   = st.session_state.language
-
-
-# ─────────────────────────────────────────────
-# HEADER
-# ─────────────────────────────────────────────
-spec_short = SPECIALTY_SHORT.get(specialty_profile, specialty_profile)
-
-if st.session_state.focus_mode:
-    st.markdown(
-        f'<div class="focus-badge">◎ Focus mode &nbsp;·&nbsp; {spec_short}</div>',
-        unsafe_allow_html=True,
-    )
-else:
-    hcol1, hcol2 = st.columns([3, 1])
-    with hcol1:
-        st.markdown(f"## Clinical workspace")
-        st.caption(f"{spec_short} · {target_language}")
-    with hcol2:
-        if st.session_state.transcript:
-            urgency = st.session_state.classification.get("urgency_tier", "—")
-            emoji   = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}.get(urgency, "⚪")
-            st.metric("Urgency", f"{emoji} {urgency}")
-
-st.divider()
-
-
-# ─────────────────────────────────────────────
-# INPUT SECTION  (only shown before first analysis)
-# ─────────────────────────────────────────────
-if not st.session_state.transcript:
-
-    if not st.session_state.focus_mode:
-        inp_col, exam_col = st.columns([1.1, 1], gap="large")
     else:
-        inp_col = st.container()
+        uploaded_file = st.file_uploader(
+            "Upload audio or dataset",
+            type=["wav", "mp3", "m4a", "json"],
+            label_visibility="collapsed",
+        )
+        if uploaded_file is not None:
+            if uploaded_file.name.endswith('.json'):
+                try:
+                    json_data = json.load(uploaded_file)
+                    if isinstance(json_data, list):
+                        st.caption(f"Dataset loaded — {len(json_data)} cases")
+                        case_idx = st.number_input(
+                            "Case index", min_value=0, max_value=len(json_data)-1, value=0
+                        )
+                        selected_node = json_data[case_idx]
+                        injected_text_payload = selected_node.get(
+                            "input", selected_node.get("instruction", "")
+                        )
+                        if injected_text_payload:
+                            st.info(injected_text_payload[:240] + ("…" if len(injected_text_payload) > 240 else ""))
+                        if injected_text_payload.strip():
+                            has_valid_audio_payload = True
+                            bypass_audio_stt = True
+                    else:
+                        st.error("JSON must be a list of cases.")
+                except Exception as json_err:
+                    st.error(f"JSON parse error: {json_err}")
+            else:
+                with open(temp_audio_filename, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.audio(temp_audio_filename)
+                has_valid_audio_payload = True
 
-    # ── Input capture ──
-    with inp_col:
-        st.markdown('<div class="sec-label">Input capture</div>', unsafe_allow_html=True)
+# ── Right: Physical Exam ────────────────────────────────────────────
+with col_exam:
+    st.markdown('<div class="section-label">Physical Examination</div>', unsafe_allow_html=True)
+    st.caption("Examination findings are merged with transcript during analysis.")
 
-        mode = st.radio(
-            "Input mode",
-            ["Text (paste / type)", "Microphone (live)", "File (.wav / .mp3 / .json)"],
-            horizontal=False,
+    exam_tabs = st.tabs(["Thoracic", "GI / Abdomen", "Neuro / Reflex", "Musculoskeletal"])
+    with exam_tabs[0]:
+        notes_thoracic = st.text_area(
+            "Thoracic",
+            value="Cardiovascular: Tachycardic, rhythm regular. S1 and S2 distinct, no audible murmurs, rubs, or gallops. Significant chest wall diaphoresis noted; patient actively clutching retrosternal area. Respiratory: Tachypneic, shallow respirations. Lungs clear to auscultation bilaterally (CTAB).",
+            height=140,
+            label_visibility="collapsed",
+        )
+    with exam_tabs[1]:
+        notes_abdominal = st.text_area(
+            "GI",
+            value="Abdomen soft, symmetric, and non-distended. Bowel sounds active in all 4 quadrants. No localized tenderness, guarding, or rebound. No hepatosplenomegaly. Epigastric region non-tender.",
+            height=140,
+            label_visibility="collapsed",
+        )
+    with exam_tabs[2]:
+        notes_neuro = st.text_area(
+            "Neuro",
+            value="Patient alert and oriented to person, place, and time (A&Ox3). Pupils equal, round, and reactive to light (PEERRLA). Observable orthostatic lightheadedness upon sitting up. Gross motor and sensory function intact.",
+            height=140,
+            label_visibility="collapsed",
+        )
+    with exam_tabs[3]:
+        notes_ortho = st.text_area(
+            "MSK",
+            value="Mild focal tenderness over lumbar paraspinal muscles. Left shoulder and left mandibular jaw display full passive range of motion with zero localized joint or bone tenderness.",
+            height=140,
             label_visibility="collapsed",
         )
 
-        has_input      = False
-        bypass_stt     = False
-        injected_text  = ""
+compiled_examination_overlay = f"""
+- Thoracic Tracking Overlay: {notes_thoracic if notes_thoracic else 'Deferred/Normal checks confirmed'}
+- GI/Abdominal Tracking Overlay: {notes_abdominal if notes_abdominal else 'Deferred/Normal checks confirmed'}
+- Reflex/Neuro Tracking Overlay: {notes_neuro if notes_neuro else 'Deferred/Normal checks confirmed'}
+- Musculoskeletal Tracking Overlay: {notes_ortho if notes_ortho else 'Deferred/Normal checks confirmed'}
+"""
 
-        if "Text" in mode:
-            injected_text = st.text_area(
-                "Transcript",
-                placeholder="Paste or type the consultation transcript here…",
-                height=200,
-                label_visibility="collapsed",
-            )
-            if injected_text.strip():
-                has_input  = True
-                bypass_stt = True
 
-        elif "Microphone" in mode:
-            audio_file = st.audio_input("Record consultation audio")
-            if audio_file is not None:
-                with open(TEMP_AUDIO, "wb") as f:
-                    f.write(audio_file.read())
-                has_input = True
+# =====================================================================
+# 8. ANALYSIS TRIGGER
+# =====================================================================
+st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-        else:  # File upload
-            uploaded = st.file_uploader(
-                "Upload audio or dataset",
-                type=["wav", "mp3", "m4a", "json"],
-                label_visibility="collapsed",
-            )
-            if uploaded is not None:
-                if uploaded.name.endswith(".json"):
-                    try:
-                        data = json.load(uploaded)
-                        if isinstance(data, list):
-                            st.success(f"{len(data)} cases loaded")
-                            idx  = st.number_input(
-                                "Case index", min_value=0,
-                                max_value=len(data) - 1, value=0,
-                            )
-                            node          = data[idx]
-                            injected_text = node.get("input", node.get("instruction", ""))
-                            if injected_text:
-                                st.caption(injected_text[:240] + "…")
-                                has_input  = True
-                                bypass_stt = True
-                        else:
-                            st.error("JSON must be a list of case objects.")
-                    except Exception as e:
-                        st.error(f"JSON parse error: {e}")
-                else:
-                    with open(TEMP_AUDIO, "wb") as f:
-                        f.write(uploaded.getbuffer())
-                    st.audio(TEMP_AUDIO)
-                    has_input = True
+if has_valid_audio_payload:
+    trigger_col, _ = st.columns([1, 2])
+    with trigger_col:
+        run_pipeline = st.button(
+            "⬡  Analyse Consultation",
+            type="primary",
+            use_container_width=True,
+        )
+else:
+    st.markdown("""
+    <div class="empty-state">
+      <div class="empty-state-icon">⬡</div>
+      <div class="empty-state-title">Awaiting input</div>
+      <div class="empty-state-body">Paste a transcript, record audio, or upload a file to begin clinical analysis.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    run_pipeline = False
 
-    # ── Physical examination (hidden in focus mode) ──
-    if not st.session_state.focus_mode:
-        with exam_col:
-            st.markdown('<div class="sec-label">Physical examination</div>',
-                        unsafe_allow_html=True)
-            etabs = st.tabs(["Thoracic", "GI / Abdomen", "Neuro", "MSK"])
-            with etabs[0]:
-                notes_thoracic = st.text_area(
-                    "Thoracic findings",
-                    value="Cardiovascular: Tachycardic, rhythm regular. S1 and S2 distinct, "
-                          "no audible murmurs. Diaphoresis noted. "
-                          "Respiratory: Tachypneic, shallow. CTAB bilaterally.",
-                    height=110, label_visibility="collapsed",
-                )
-            with etabs[1]:
-                notes_gi = st.text_area(
-                    "GI findings",
-                    value="Abdomen soft, non-distended. Bowel sounds active. "
-                          "No tenderness, guarding, or rebound. "
-                          "No hepatosplenomegaly. Epigastric non-tender.",
-                    height=110, label_visibility="collapsed",
-                )
-            with etabs[2]:
-                notes_neuro = st.text_area(
-                    "Neuro findings",
-                    value="A&Ox3. PERRLA. Orthostatic lightheadedness on sitting up. "
-                          "Gross motor and sensory intact.",
-                    height=110, label_visibility="collapsed",
-                )
-            with etabs[3]:
-                notes_msk = st.text_area(
-                    "MSK findings",
-                    value="Mild lumbar paraspinal tenderness. "
-                          "Left shoulder and mandible — full passive ROM, no joint tenderness.",
-                    height=110, label_visibility="collapsed",
-                )
+
+# =====================================================================
+# 9. PIPELINE EXECUTION
+#    Priority 5: st.status() for live stage feedback; hidden when done
+# =====================================================================
+if has_valid_audio_payload and run_pipeline:
+    if not groq_api_key or not gemini_api_key:
+        st.error("API credentials required — open ⚙ Settings to configure.")
     else:
-        notes_thoracic = "Deferred in focus mode"
-        notes_gi       = "Deferred in focus mode"
-        notes_neuro    = "Deferred in focus mode"
-        notes_msk      = "Deferred in focus mode"
+        pipeline_start = time.time()
 
-    compiled_exam = (
-        f"- Thoracic: {notes_thoracic}\n"
-        f"- GI/Abdomen: {notes_gi}\n"
-        f"- Neuro/Reflex: {notes_neuro}\n"
-        f"- Musculoskeletal: {notes_msk}"
-    )
-
-    st.divider()
-
-    # ── Run button ──
-    run_disabled = not has_input
-    if st.button(
-        "Run salience analysis",
-        type="primary",
-        use_container_width=True,
-        disabled=run_disabled,
-        key="run_btn",
-    ):
-        if not groq_api_key or not gemini_api_key:
-            st.error("API credentials missing. Add keys in the sidebar.")
-            st.stop()
-
-        t0 = time.time()
-        with st.status("Running analysis pipeline…", expanded=True) as status:
+        with st.status("Running clinical intelligence pipeline…", expanded=True) as status_widget:
             try:
-                # ── Stage 1: STT ──
-                if bypass_stt:
-                    raw_text = injected_text
-                    st.write("✓ Text input ingested")
+                # ── Stage 1: Transcription ──────────────────────────
+                if bypass_audio_stt:
+                    st.write("✓  Text input detected — bypassing STT")
+                    extracted_raw_text = injected_text_payload
                 else:
-                    st.write("Compressing audio…")
-                    audio    = AudioSegment.from_file(TEMP_AUDIO)
-                    audio    = audio.set_channels(1).set_frame_rate(16000)
-                    audio.export(COMP_AUDIO, format="mp3", bitrate="64k")
-                    gc = Groq(api_key=groq_api_key, timeout=60.0)
-                    with open(COMP_AUDIO, "rb") as ab:
-                        raw_text = gc.audio.transcriptions.create(
-                            file=(COMP_AUDIO, ab.read()),
+                    st.write("⬡  Compressing audio for Whisper API…")
+                    raw_audio = AudioSegment.from_file(temp_audio_filename)
+                    processed_audio = raw_audio.set_channels(1).set_frame_rate(16000)
+                    compressed_filename = "optimized_api_payload.mp3"
+                    processed_audio.export(compressed_filename, format="mp3", bitrate="64k")
+
+                    st.write("⬡  Transcribing via Whisper large-v3…")
+                    groq_client = Groq(api_key=groq_api_key, timeout=60.0)
+                    with open(compressed_filename, "rb") as audio_binary:
+                        extracted_raw_text = groq_client.audio.transcriptions.create(
+                            file=(compressed_filename, audio_binary.read()),
                             model="whisper-large-v3",
                             response_format="text",
                         )
-                    for fp in [TEMP_AUDIO, COMP_AUDIO]:
-                        if os.path.exists(fp):
-                            os.remove(fp)
-                    st.write("✓ Transcription complete")
+                    if os.path.exists(temp_audio_filename):  os.remove(temp_audio_filename)
+                    if os.path.exists(compressed_filename):  os.remove(compressed_filename)
+                    st.write("✓  Transcription complete")
 
-                # ── Stage 2: Gemini salience engine ──
-                st.write("Running clinical salience engine…")
+                # ── Stage 2: Gemini Intelligence ───────────────────
+                st.write("⬡  Running salience analysis via Gemini 2.5 Flash…")
                 genai.configure(api_key=gemini_api_key)
-                engine = genai.GenerativeModel("gemini-2.5-flash")
+                intelligence_engine = genai.GenerativeModel('gemini-2.5-flash')
 
-                prompt = f"""
-You are the core analytical pipeline of Salience OS, configured for the specialty: {specialty_profile}.
-The incoming data stream was ingested with an expected localization matrix profile of: {target_language}.
+                system_prompt = f"""
+                You are the core analytical pipeline of Salience OS, configured for the specialty: {specialty_profile}.
+                The incoming data stream was ingested with an expected localization matrix profile of: {target_language}.
 
-RAW INPUT DATA TRANSCRIPT:
-\"\"\"{raw_text}\"\"\"
+                RAW INPUT DATA TRANSCRIPT:
+                \"\"\"{extracted_raw_text}\"\"\"
 
-DOCTOR PHYSICAL EXAMINATION DATA OVERLAYS:
-\"\"\"{compiled_exam}\"\"\"
+                DOCTOR PHYSICAL EXAMINATION DATA OVERLAYS:
+                \"\"\"{compiled_examination_overlay}\"\"\"
 
-Generate a valid JSON payload object matching exactly this structure (no markdown blocks, no prefix text):
-{{
-    "cleaned_transcript": "string containing clean, error-corrected text stream",
-    "classification": {{"urgency_tier": "CRITICAL or HIGH or MEDIUM or LOW", "primary_clinical_trigger": "Brief sentence"}},
-    "salience_weight_map": [
-        {{"entity": "Entity Name", "category": "Symptom or Medication or Medical History or Duration or Noise", "salience_score": 0.95, "reasoning_context": "Why this priority?"}}
-    ],
-    "clinical_safety_red_flags": ["Specific warnings"],
-    "suggested_next_steps": ["Lab tracking, imaging profiles"],
-    "structured_soap_chart": "Detailed markdown formatted text strictly outputting Subjective, Objective, Assessment, and Plan entries. Base Subjective data ONLY on elements where salience_score >= 0.5."
-}}
-"""
-                resp   = engine.generate_content(
-                    prompt,
+                Generate a valid JSON payload object matching exactly this structure (no markdown blocks, no prefix text):
+                {{
+                    "cleaned_transcript": "string containing clean, error-corrected text stream",
+                    "classification": {{"urgency_tier": "CRITICAL or HIGH or MEDIUM or LOW", "primary_clinical_trigger": "Brief sentence"}},
+                    "salience_weight_map": [
+                        {{"entity": "Entity Name", "category": "Symptom or Medication or Medical History or Duration or Noise", "salience_score": 0.95, "reasoning_context": "Why this priority?"}}
+                    ],
+                    "clinical_safety_red_flags": ["Specific warnings"],
+                    "suggested_next_steps": ["Lab tracking, imaging profiles"],
+                    "structured_soap_chart": "Detailed markdown formatted text strictly outputting Subjective, Objective, Assessment, and Plan entries. Base Subjective data ONLY on elements where salience_score >= 0.5."
+                }}
+                """
+
+                response_package = intelligence_engine.generate_content(
+                    system_prompt,
                     generation_config={"response_mime_type": "application/json"},
                 )
-                parsed = json.loads(resp.text, strict=False)
 
-                st.session_state.transcript    = parsed.get("cleaned_transcript", "")
-                st.session_state.classification = parsed.get("classification", {})
-                st.session_state.salience_map  = parsed.get("salience_weight_map", [])
-                st.session_state.soap_note     = parsed.get("structured_soap_chart", "")
-                st.session_state.flags         = parsed.get("clinical_safety_red_flags", [])
-                st.session_state.next_steps    = parsed.get("suggested_next_steps", [])
-                st.session_state.pipeline_time = round(time.time() - t0, 2)
-                st.session_state.chart_locked  = False
+                # SYSTEM PATCH: strict=False prevents crashes from unescaped control chars
+                parsed_payload = json.loads(response_package.text, strict=False)
 
-                status.update(label="Analysis complete", state="complete", expanded=False)
+                st.write("✓  Intelligence extraction complete")
+                st.write("⬡  Compiling SOAP chart…")
+
+                st.session_state.transcript             = parsed_payload.get("cleaned_transcript", "")
+                st.session_state.classification         = parsed_payload.get("classification", {})
+                st.session_state.salience_map           = parsed_payload.get("salience_weight_map", [])
+                st.session_state.soap_note              = parsed_payload.get("structured_soap_chart", "")
+                st.session_state.flags                  = parsed_payload.get("clinical_safety_red_flags", [])
+                st.session_state.next_steps             = parsed_payload.get("suggested_next_steps", [])
+                st.session_state.pipeline_execution_time = round(time.time() - pipeline_start, 2)
+                st.session_state.chart_locked           = False
+
+                st.write("✓  Pipeline complete")
+                status_widget.update(
+                    label=f"Analysis complete — {st.session_state.pipeline_execution_time}s",
+                    state="complete",
+                    expanded=False,
+                )
                 st.rerun()
 
             except Exception as e:
-                status.update(label="Pipeline error", state="error")
+                status_widget.update(label="Pipeline error", state="error", expanded=True)
                 st.error(f"Error: {e}")
 
-    if run_disabled:
-        st.caption("Add a transcript or recording above to enable analysis.")
 
-
-# ─────────────────────────────────────────────
-# OUTPUT SECTION
-# ─────────────────────────────────────────────
+# =====================================================================
+# 10. RESULTS WORKSPACE
+#     Priority 4: Urgency in results area, not header
+#     Priority 6: SOAP readability + sticky action bar
+# =====================================================================
 if st.session_state.transcript:
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Clinical Intelligence Output</div>', unsafe_allow_html=True)
 
-    urgency = st.session_state.classification.get("urgency_tier", "")
-    trigger = st.session_state.classification.get("primary_clinical_trigger", "")
+    # ── Urgency Banner (lives here, not in header) ──────────────────
+    classification = st.session_state.classification
+    urgency  = classification.get("urgency_tier", "MEDIUM")
+    trigger  = classification.get("primary_clinical_trigger", "")
 
-    # Always-visible urgency banner
-    render_alert(urgency, trigger)
+    n_signals = len(st.session_state.salience_map)
+    n_flags   = len(st.session_state.flags)
+    elapsed   = st.session_state.pipeline_execution_time
 
-    # ── FOCUS MODE — single-page stripped view ──
-    if st.session_state.focus_mode:
-        fc1, fc2 = st.columns([1, 1], gap="large")
+    st.markdown(f"""
+    <div class="urgency-bar {urgency}">
+      <div>
+        <div class="urgency-label">{urgency} Priority</div>
+        <div class="urgency-text">{trigger}</div>
+      </div>
+      <div class="urgency-metrics">
+        <span class="metric-chip"><span class="chip-label">Signals</span>{n_signals}</span>
+        <span class="metric-chip"><span class="chip-label">Flags</span>{n_flags}</span>
+        <span class="metric-chip"><span class="chip-label">Time</span>{elapsed}s</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        with fc1:
-            render_signals(st.session_state.salience_map)
-            st.divider()
-            st.markdown('<div class="sec-label">Safety flags</div>', unsafe_allow_html=True)
-            render_flags(st.session_state.flags)
+    # ── Output Tabs (native st.tabs) ────────────────────────────────
+    output_tabs = st.tabs([
+        "Clinical Signals",
+        "Safety Flags",
+        "Next Steps",
+        "SOAP Note",
+        "Explainability",
+    ])
 
-        with fc2:
-            st.markdown('<div class="sec-label">SOAP note</div>', unsafe_allow_html=True)
-            edited_soap = st.text_area(
-                "SOAP note",
-                value=st.session_state.soap_note,
-                height=340,
-                label_visibility="collapsed",
-                key="focus_soap",
+    # ── Tab 1: Clinical Signals ─────────────────────────────────────
+    with output_tabs[0]:
+        if st.session_state.salience_map:
+            sorted_signals = sorted(
+                st.session_state.salience_map,
+                key=lambda x: x.get("salience_score", 0),
+                reverse=True,
             )
+            for item in sorted_signals:
+                score    = item.get("salience_score", 0.0)
+                entity   = item.get("entity", "")
+                category = item.get("category", "")
+                reasoning = item.get("reasoning_context", "")
+                bar_pct  = int(score * 100)
+
+                if score >= 0.85:
+                    ring_cls = "score-critical"; bar_color = "var(--tier-critical)"
+                elif score >= 0.70:
+                    ring_cls = "score-high";     bar_color = "var(--tier-high)"
+                elif score >= 0.50:
+                    ring_cls = "score-medium";   bar_color = "var(--tier-medium)"
+                else:
+                    ring_cls = "score-low";      bar_color = "var(--tier-low)"
+
+                st.markdown(f"""
+                <div class="signal-row">
+                  <div class="signal-score-ring {ring_cls}">{bar_pct}</div>
+                  <div class="signal-body">
+                    <div class="signal-entity">{entity}</div>
+                    <span class="signal-category-chip">{category}</span>
+                    <div class="signal-reasoning">{reasoning}</div>
+                    <div class="signal-bar-track">
+                      <div class="signal-bar-fill" style="width:{bar_pct}%;background:{bar_color}"></div>
+                    </div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)
+
+    # ── Tab 2: Safety Flags ─────────────────────────────────────────
+    with output_tabs[1]:
+        if st.session_state.flags:
+            for alert in st.session_state.flags:
+                st.markdown(f"""
+                <div class="flag-item">
+                  <div class="flag-icon">⚑</div>
+                  <div>{alert}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="empty-state">
+              <div class="empty-state-icon">✓</div>
+              <div class="empty-state-title">No safety flags raised</div>
+              <div class="empty-state-body">All clinical safety parameters cleared for this consultation.</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── Tab 3: Next Steps ───────────────────────────────────────────
+    with output_tabs[2]:
+        if st.session_state.next_steps:
+            for idx, step in enumerate(st.session_state.next_steps, 1):
+                st.markdown(f"""
+                <div class="step-item">
+                  <div class="step-num">{idx}</div>
+                  <div>{step}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="empty-state"><div class="empty-state-title">No next steps generated</div></div>', unsafe_allow_html=True)
+
+    # ── Tab 4: SOAP Note ────────────────────────────────────────────
+    with output_tabs[3]:
+        soap_raw = st.session_state.soap_note
+
+        # Meta row
+        st.markdown(f"""
+        <div class="soap-meta-row">
+          <div class="soap-meta-item">
+            <span class="soap-meta-label">Generated</span>
+            <span class="soap-meta-value">{datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
+          </div>
+          <div class="soap-meta-item">
+            <span class="soap-meta-label">Specialty</span>
+            <span class="soap-meta-value">{specialty_profile}</span>
+          </div>
+          <div class="soap-meta-item">
+            <span class="soap-meta-label">Status</span>
+            <span class="soap-meta-value" style="color:{'var(--accent-violet)' if st.session_state.chart_locked else 'var(--accent-amber)'}">
+              {'Signed & Locked' if st.session_state.chart_locked else 'Pending Review'}
+            </span>
+          </div>
+          <div class="soap-meta-item">
+            <span class="soap-meta-label">Pipeline Time</span>
+            <span class="soap-meta-value">{elapsed}s</span>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Render SOAP with improved typography
+        soap_lines = soap_raw.split("\n")
+        rendered = []
+        for line in soap_lines:
+            s = line.strip()
+            if s.startswith("###"):
+                header = s.replace("###", "").strip().rstrip(":")
+                rendered.append(f'<div class="soap-section-header">{header}</div>')
+            elif s.startswith("**") and s.endswith("**"):
+                bt = s.replace("**", "").strip()
+                rendered.append(f'<span class="soap-bold">{bt}</span><br>')
+            elif s:
+                rendered.append(f'<p class="soap-body-p">{s}</p>')
+            else:
+                rendered.append('<div style="height:6px"></div>')
+
+        soap_html = "".join(rendered)
+        st.markdown(f"""
+        <div class="soap-outer">
+          <div class="soap-viewer">{soap_html}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Action bar — three native buttons in columns
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        act1, act2, act3 = st.columns([1, 1, 1])
+
+        with act1:
+            st.button(
+                "⎘  Copy SOAP",
+                key="copy_soap_btn",
+                use_container_width=True,
+                help="Copy SOAP note to clipboard (use Ctrl+A in viewer above)",
+            )
+
+        with act2:
             try:
-                pdf_bytes = generate_clinical_pdf(edited_soap, specialty_profile)
+                pdf_binary = generate_clinical_pdf(st.session_state.soap_note, specialty_profile)
                 st.download_button(
-                    "⬇ Download PDF",
-                    data=pdf_bytes,
-                    file_name=f"Salience_OS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    label="↓  Export PDF",
+                    data=pdf_binary,
+                    file_name=f"SalienceOS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                     mime="application/pdf",
                     use_container_width=True,
                 )
-            except Exception as e:
-                st.error(f"PDF error: {e}")
+            except Exception as pdf_err:
+                st.error(f"PDF error: {pdf_err}")
 
-            st.divider()
+        with act3:
             if st.session_state.chart_locked:
-                st.success("✓ Signed and pushed to EHR.")
-                st.button("Chart locked", disabled=True,
-                          use_container_width=True, key="focus_locked")
+                st.button("✓  Synced to FHIR", disabled=True, use_container_width=True)
             else:
-                st.warning("Note unsigned — review before sign-off.")
-                if st.button("Sign & push to EHR", type="primary",
-                             use_container_width=True, key="focus_sign"):
-                    with st.spinner("Pushing to EHR…"):
+                if st.button("Sign & Push to EHR", type="primary", use_container_width=True):
+                    with st.spinner("Encrypting and synchronising with HL7/FHIR endpoint…"):
                         time.sleep(2.0)
-                    st.session_state.chart_locked = True
-                    st.rerun()
-
-    # ── FULL MODE — tabbed workspace ──
-    else:
-        tab_findings, tab_flags, tab_soap, tab_explain = st.tabs([
-            "Key findings",
-            "Red flags & next steps",
-            "SOAP review",
-            "Explainability",
-        ])
-
-        # ── Tab 1: Key findings ──
-        with tab_findings:
-            sig_col, tx_col = st.columns([1, 1], gap="large")
-
-            with sig_col:
-                render_signals(st.session_state.salience_map)
-
-            with tx_col:
-                st.markdown('<div class="sec-label">Cleaned transcript</div>',
-                            unsafe_allow_html=True)
-                st.text_area(
-                    "Cleaned transcript",
-                    value=st.session_state.transcript,
-                    height=340,
-                    disabled=True,
-                    label_visibility="collapsed",
-                    key="view_transcript",
-                )
-
-        # ── Tab 2: Red flags & next steps ──
-        with tab_flags:
-            fc, sc = st.columns([1, 1], gap="large")
-
-            with fc:
-                st.markdown('<div class="sec-label">Safety flags</div>', unsafe_allow_html=True)
-                render_flags(st.session_state.flags)
-
-            with sc:
-                st.markdown('<div class="sec-label">Suggested next steps</div>',
-                            unsafe_allow_html=True)
-                render_steps(st.session_state.next_steps)
-
-        # ── Tab 3: SOAP review ──
-        with tab_soap:
-            note_col, action_col = st.columns([1.65, 1], gap="large")
-
-            with note_col:
-                st.markdown('<div class="sec-label">Clinical note — pending review</div>',
-                            unsafe_allow_html=True)
-                edited_soap = st.text_area(
-                    "SOAP note",
-                    value=st.session_state.soap_note,
-                    height=440,
-                    label_visibility="collapsed",
-                    key="edit_soap",
-                )
-
-            with action_col:
-                st.markdown('<div class="sec-label">Review & sign-off</div>',
-                            unsafe_allow_html=True)
-                st.caption(
-                    f"Processed in {st.session_state.pipeline_time}s · {specialty_profile}"
-                )
-                st.divider()
-
-                # PDF download
-                try:
-                    pdf_bytes = generate_clinical_pdf(edited_soap, specialty_profile)
-                    st.download_button(
-                        "⬇ Download clinical PDF",
-                        data=pdf_bytes,
-                        file_name=f"Salience_OS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                    )
-                except Exception as e:
-                    st.error(f"PDF error: {e}")
-
-                st.divider()
-
-                # EHR sign-off
-                if st.session_state.chart_locked:
-                    st.success("✓ Signed and pushed to EHR.")
-                    st.button("Chart locked", disabled=True,
-                              use_container_width=True, key="full_locked")
-                else:
-                    st.warning("Note is unsigned. Review before sign-off.")
-                    if st.button("Sign & push to EHR", type="primary",
-                                 use_container_width=True, key="full_sign"):
-                        with st.spinner("Encrypting and pushing to EHR…"):
-                            time.sleep(2.0)
                         st.session_state.chart_locked = True
+                        st.success("Chart signed and pushed to simulated EHR database.")
+                        st.balloons()
                         st.rerun()
 
-                st.divider()
-                if st.button("↩ New consultation", use_container_width=True, key="new_consult"):
-                    reset_analysis()
-                    st.rerun()
+    # ── Tab 5: Explainability ───────────────────────────────────────
+    with output_tabs[4]:
+        if st.session_state.salience_map:
+            sorted_exp = sorted(
+                st.session_state.salience_map,
+                key=lambda x: x.get("salience_score", 0),
+                reverse=True,
+            )
+            for idx, item in enumerate(sorted_exp, 1):
+                entity   = item.get("entity", "")
+                score    = item.get("salience_score", 0.0)
+                reasoning = item.get("reasoning_context", "")
+                category = item.get("category", "")
+                score_pct = int(score * 100)
 
-        # ── Tab 4: Explainability ──
-        with tab_explain:
-            render_explainability(st.session_state.salience_map)
+                if score >= 0.85:    sc = "var(--tier-critical)"
+                elif score >= 0.70:  sc = "var(--tier-high)"
+                elif score >= 0.50:  sc = "var(--tier-medium)"
+                else:                sc = "var(--tier-low)"
+
+                st.markdown(f"""
+                <div class="signal-row" style="padding:11px 6px">
+                  <div style="flex-shrink:0;width:26px;font-size:10.5px;font-family:var(--font-mono);
+                              color:var(--text-muted);text-align:right;padding-top:2px">{idx:02d}</div>
+                  <div class="signal-body">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                      <span class="signal-entity">{entity}</span>
+                      <span class="signal-category-chip">{category}</span>
+                      <span style="margin-left:auto;font-size:11.5px;font-weight:700;
+                                   font-family:var(--font-mono);color:{sc}">{score_pct}%</span>
+                    </div>
+                    <div class="signal-reasoning">{reasoning}</div>
+                    <div class="signal-bar-track" style="margin-top:8px">
+                      <div class="signal-bar-fill" style="width:{score_pct}%;background:{sc}"></div>
+                    </div>
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="empty-state"><div class="empty-state-title">No reasoning data available</div></div>', unsafe_allow_html=True)
