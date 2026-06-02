@@ -1054,7 +1054,7 @@ if st.session_state.transcript:
     ])
 
     # Tab 1 — Clinical Signals
-with output_tabs[0]:
+    with output_tabs[0]:
     if st.session_state.salience_map:
         for item in sorted(st.session_state.salience_map,
                            key=lambda x: x.get("salience_score", 0), reverse=True):
