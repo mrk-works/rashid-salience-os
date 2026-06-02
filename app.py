@@ -1079,8 +1079,7 @@ with output_tabs[0]:
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)
-    with output_tabs[1]:
+        st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)    with output_tabs[1]:
         if st.session_state.flags:
             for alert in st.session_state.flags:
                 st.markdown(f'<div class="flag-item"><div class="flag-icon">⚑</div><div>{alert}</div></div>', unsafe_allow_html=True)
