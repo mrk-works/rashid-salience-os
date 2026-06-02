@@ -2,7 +2,7 @@
 # Pin Streamlit >= 1.35.0 to guarantee:
 #   st.segmented_control (added 1.29)
 #   st.pills             (added 1.32)
-#   st.audio_input       (added 1.33)
+#   st.audio_input       (added 1.33) 
 #   st.status            (added 1.28)
 #   st.popover           (added 1.31)
 # ─────────────────────────────────────────────────────────────────────
