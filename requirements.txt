@@ -4,3 +4,5 @@ google-generativeai
 pandas
 pydub
 fpdf2
+audioop-lts
+pyaudioop
