@@ -1,5 +1,2 @@
-# System packages for Streamlit Cloud (Ubuntu apt)
-# Required for pydub audio codec support
 ffmpeg
 libavcodec-extra
- 
