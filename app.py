@@ -1,16 +1,11 @@
 # =====================================================================
 # SALIENCE OS — Clinical Intelligence Workspace
 # Production build — Python 3.12 / Streamlit Cloud
-# BUG-A: audioop-lts removed (Python 3.12 has audioop natively)
-# BUG-B: packages.txt fixed (comments stripped)
-# BUG-C: all IndentationErrors, empty tab bodies, and structural
-#         issues repaired; reasoning column restored in signals tab
+# Onboarding Pass: Welcome panel, workflow guide, tooltips,
+#   sample case, help drawer, disclaimer, actionable empty states
 # =====================================================================
 
 import sys
-
-# audioop bridge — Python 3.12 has it natively; this is a no-op there.
-# Python 3.13+ will need audioop-lts installed separately (not in reqs).
 try:
     import audioop  # noqa: F401
 except ImportError:
@@ -80,7 +75,100 @@ COMP_AUDIO = "optimized_payload.mp3"
 
 
 # =====================================================================
-# PDF GENERATION  (fpdf2 — new_x/new_y API, no deprecated ln=True)
+# DEMO PATIENT DATA  (Goal 5 — Sample Case)
+# A realistic cardiology consultation used as a safe demo.
+# =====================================================================
+DEMO_TRANSCRIPT = """Patient is a 58-year-old male presenting with a 3-hour history of central crushing chest pain radiating to the left jaw and left arm, rated 8 out of 10 in severity. Associated symptoms include profuse diaphoresis, nausea without vomiting, and significant shortness of breath on exertion. The patient reports the pain began while climbing stairs at home and has not resolved with rest. He has a background history of hypertension for 12 years, type 2 diabetes mellitus for 8 years, and hypercholesterolaemia. He is a current smoker with a 30 pack-year history. Current medications include metformin 1g twice daily, amlodipine 10mg once daily, and atorvastatin 40mg once daily. He denies any recent trauma, fever, or productive cough. No family history of sudden cardiac death. He has never had a previous cardiac event."""
+
+DEMO_THORACIC = "Cardiovascular: Tachycardic at 108 bpm, rhythm regular. S1 and S2 present, no audible murmurs, rubs, or gallops. Significant chest wall diaphoresis noted; patient actively clutching retrosternal area. Respiratory: Tachypneic at 22 breaths/min, shallow respirations. Lungs clear to auscultation bilaterally (CTAB) with no wheezing, rales, or rhonchi."
+DEMO_ABDOMINAL = "Abdomen soft, symmetric, and non-distended. Bowel sounds active in all 4 quadrants. No localized tenderness, guarding, or rebound to light/deep palpation. No hepatosplenomegaly. Epigastric region non-tender."
+DEMO_NEURO = "Patient alert and oriented to person, place, and time (A&Ox3). Pupils equal, round, and reactive to light (PEERRLA). No focal neurological deficits. Mild anxiety noted. GCS 15/15."
+DEMO_ORTHO = "No peripheral oedema. Left shoulder passive range of motion intact. Left mandibular jaw — no tenderness on palpation. No musculoskeletal abnormalities of clinical significance."
+
+DEMO_SALIENCE_MAP = [
+    {"entity": "Central crushing chest pain", "category": "Symptom", "salience_score": 0.98, "reasoning_context": "Cardinal symptom of ACS. Retrosternal, crushing quality with radiation to left jaw and arm — classic STEMI/NSTEMI presentation requiring immediate workup."},
+    {"entity": "Radiation to left jaw and arm", "category": "Symptom", "salience_score": 0.95, "reasoning_context": "Left-sided radiation pattern is highly specific for myocardial ischaemia. Increases pre-test probability of ACS significantly."},
+    {"entity": "Profuse diaphoresis", "category": "Symptom", "salience_score": 0.91, "reasoning_context": "Autonomic activation accompanying acute myocardial ischaemia. Strong predictor of major cardiac event in chest pain presentations."},
+    {"entity": "3-hour symptom duration", "category": "Duration", "salience_score": 0.88, "reasoning_context": "Time-critical window for reperfusion therapy. Door-to-balloon time targets apply. Informs thrombolysis eligibility."},
+    {"entity": "Hypertension (12 years)", "category": "Medical History", "salience_score": 0.82, "reasoning_context": "Major modifiable cardiac risk factor. Contributes to atherosclerotic burden and left ventricular hypertrophy risk."},
+    {"entity": "Type 2 diabetes mellitus", "category": "Medical History", "salience_score": 0.79, "reasoning_context": "Independent cardiovascular risk multiplier. Diabetic patients may present with atypical ACS symptoms. Influences antiplatelet and reperfusion choices."},
+    {"entity": "Active smoking (30 pack-years)", "category": "Medical History", "salience_score": 0.76, "reasoning_context": "Significant atherosclerotic risk factor. Smoking cessation must be addressed in management plan."},
+    {"entity": "Tachycardia 108 bpm", "category": "Symptom", "salience_score": 0.74, "reasoning_context": "Haemodynamic response to ischaemic pain and autonomic activation. Monitor for progression to arrhythmia."},
+    {"entity": "Shortness of breath on exertion", "category": "Symptom", "salience_score": 0.68, "reasoning_context": "Suggests reduced left ventricular function or early pulmonary oedema. Requires echo assessment."},
+    {"entity": "Atorvastatin 40mg", "category": "Medication", "salience_score": 0.55, "reasoning_context": "Current statin therapy. Consider dose escalation to high-intensity statin (80mg) post-ACS per NICE guidelines."},
+]
+
+DEMO_FLAGS = [
+    "STEMI equivalent presentation — immediate 12-lead ECG and cardiology review required.",
+    "Symptom duration exceeds 3 hours — reperfusion window narrowing. Assess for primary PCI eligibility.",
+    "Diabetic patient: atypical presentation possible — maintain high index of suspicion despite pain severity.",
+    "Current smoker: increased thrombotic risk — dual antiplatelet therapy considerations apply.",
+]
+
+DEMO_NEXT_STEPS = [
+    "Obtain immediate 12-lead ECG and continuous cardiac monitoring.",
+    "Urgent troponin I/T, FBC, U&E, LFTs, coagulation screen, and group & save.",
+    "Chest X-ray (portable if haemodynamically unstable).",
+    "Aspirin 300mg loading dose stat (unless contraindicated); consider P2Y12 inhibitor.",
+    "Refer urgently to cardiology / activate PPCI pathway if STEMI confirmed on ECG.",
+    "IV access × 2, IV morphine for pain, IV antiemetic, supplemental O2 if SpO2 < 94%.",
+    "Bedside echocardiogram to assess wall motion and ejection fraction.",
+    "Reassess blood glucose and review metformin — hold peri-procedure.",
+]
+
+DEMO_SOAP = """### Subjective
+**Chief Complaint:** Central crushing chest pain, 8/10 severity, 3-hour duration.
+
+**History of Presenting Illness:** Mr. [DEMO] is a 58-year-old male presenting to the emergency department with a 3-hour history of central crushing chest pain. The pain radiates to the left jaw and left arm. It commenced during exertion (stair climbing) and has not resolved with rest. He reports associated profuse diaphoresis, nausea, and shortness of breath on exertion. Pain onset was sudden with no preceding trauma or illness.
+
+**Past Medical History:** Hypertension (12 years), Type 2 Diabetes Mellitus (8 years), Hypercholesterolaemia.
+
+**Medications:** Metformin 1g BD, Amlodipine 10mg OD, Atorvastatin 40mg OD.
+
+**Social History:** Active smoker, 30 pack-year history. Independent functional status prior to today.
+
+**Allergies:** Not recorded — to be clarified.
+
+### Objective
+**Vital Signs:** HR 108 bpm (tachycardic), RR 22/min (tachypnoeic). Temperature and BP not recorded in transcript — obtain urgently.
+
+**Cardiovascular:** S1/S2 present, no murmurs. Diaphoresis noted. Clutching retrosternal area.
+
+**Respiratory:** CTAB. No wheeze or crepitations.
+
+**Abdomen:** Soft, non-tender, non-distended. Bowel sounds present.
+
+**Neurological:** GCS 15/15. A&Ox3. No focal deficits.
+
+**MSK:** No peripheral oedema. Left shoulder and jaw — full passive ROM, non-tender.
+
+### Assessment
+**Primary Differential:** Acute Coronary Syndrome — STEMI or NSTEMI pending ECG and troponin results. Presentation is high-probability ACS based on symptom quality, radiation pattern, associated diaphoresis, cardiovascular risk factor burden, and exertional onset.
+
+**Urgency Tier:** CRITICAL — time-sensitive reperfusion window.
+
+**Risk Stratification:** High-risk. TIMI/GRACE score to be calculated on arrival of bloods. Multiple major risk factors present (DM, HTN, hypercholesterolaemia, active smoking).
+
+### Plan
+1. Immediate 12-lead ECG and continuous cardiac monitoring.
+2. Urgent bloods: Troponin, FBC, U&E, LFTs, glucose, coagulation, G&S.
+3. Aspirin 300mg loading dose stat (confirm no contraindications).
+4. Activate PPCI pathway if STEMI pattern on ECG — door-to-balloon target 90 minutes.
+5. IV access, IV morphine 2.5–5mg titrated, IV antiemetic, O2 if SpO2 < 94%.
+6. Portable CXR.
+7. Urgent cardiology referral.
+8. Hold metformin pending renal function and procedure planning.
+9. High-intensity statin (atorvastatin 80mg) post-stabilisation per NICE ACS guidelines.
+10. Smoking cessation counselling and referral at appropriate stage of admission."""
+
+DEMO_CLASSIFICATION = {
+    "urgency_tier": "CRITICAL",
+    "primary_clinical_trigger": "High-probability ACS in a 58-year-old male with 3 hours of crushing chest pain, radiation to jaw/arm, diaphoresis, and multiple cardiac risk factors.",
+}
+
+
+# =====================================================================
+# PDF GENERATION
 # =====================================================================
 def sanitize_for_pdf(text: str) -> str:
     if not text:
@@ -142,7 +230,7 @@ def generate_clinical_pdf(soap_text: str, specialty: str) -> bytes:
 
 
 # =====================================================================
-# PAGE CONFIG — must be the very first Streamlit call
+# PAGE CONFIG
 # =====================================================================
 st.set_page_config(
     page_title="Salience OS",
@@ -169,6 +257,13 @@ _DEFAULTS: dict = {
     "sc_theme": "Dark",
     "_groq_override": "",
     "_gemini_override": "",
+    # Onboarding state
+    "onboarding_dismissed": False,
+    "demo_thoracic": DEMO_THORACIC,
+    "demo_abdominal": DEMO_ABDOMINAL,
+    "demo_neuro": DEMO_NEURO,
+    "demo_ortho": DEMO_ORTHO,
+    "demo_loaded": False,
 }
 for _k, _v in _DEFAULTS.items():
     if _k not in st.session_state:
@@ -191,7 +286,7 @@ except Exception:
 
 
 # =====================================================================
-# CSS
+# CSS — extended with onboarding component styles
 # =====================================================================
 st.markdown("""
 <style>
@@ -232,27 +327,25 @@ st.markdown("""
     radial-gradient(circle at 72% 92%, rgba(139,92,246,0.05) 0%, transparent 28%),
     #080B10 !important;
 }
-
 html, body, [class*="css"] {
   font-family: -apple-system,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;
   color: var(--text-primary) !important;
   -webkit-font-smoothing: antialiased;
 }
-
 #MainMenu, footer, header { visibility: hidden !important; }
 .stDeployButton { display: none !important; }
 .block-container {
   padding-top: 12px !important;
   padding-left: 16px !important;
   padding-right: 16px !important;
-  padding-bottom: 40px !important;
+  padding-bottom: 80px !important;
   max-width: 100% !important;
 }
-
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 99px; }
 
+/* ── Header ── */
 .os-header {
   display:flex; align-items:center; justify-content:space-between;
   padding:10px 0 14px; border-bottom:1px solid var(--border-subtle); margin-bottom:20px;
@@ -273,6 +366,91 @@ html, body, [class*="css"] {
 @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
 .os-time { font-size:11px; font-family:var(--font-mono); color:var(--text-muted); font-variant-numeric:tabular-nums; }
 
+/* ── Welcome panel ── */
+.welcome-panel {
+  background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(139,92,246,0.04) 100%);
+  border: 1px solid rgba(59,130,246,0.18);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px 20px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.welcome-title {
+  font-size: 15px; font-weight: 700; color: var(--text-primary);
+  margin-bottom: 4px; letter-spacing: -0.2px;
+}
+.welcome-subtitle {
+  font-size: 12.5px; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.6;
+}
+.welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.welcome-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+.welcome-card-icon { font-size: 16px; margin-bottom: 6px; }
+.welcome-card-title {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
+}
+.welcome-card-body { font-size: 12px; color: var(--text-secondary); line-height: 1.55; }
+
+/* ── Workflow steps ── */
+.workflow-strip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 14px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.workflow-step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-default);
+  color: var(--text-muted);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.workflow-step-num.done {
+  background: rgba(16,185,129,0.12);
+  border-color: var(--accent-emerald);
+  color: var(--accent-emerald);
+}
+.workflow-step-num.active {
+  background: rgba(59,130,246,0.14);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.workflow-step-label {
+  font-size: 11.5px; font-weight: 500; color: var(--text-secondary);
+}
+.workflow-step-label.active { color: var(--accent-blue); font-weight: 600; }
+.workflow-step-label.done { color: var(--accent-emerald); }
+.workflow-arrow {
+  color: var(--text-muted); font-size: 11px;
+  margin: 0 8px; flex-shrink: 0;
+}
+
+/* ── Section label ── */
 .section-label {
   font-size:10px; font-weight:700; letter-spacing:1px;
   text-transform:uppercase; color:var(--text-muted);
@@ -280,6 +458,7 @@ html, body, [class*="css"] {
 }
 .section-label::after { content:''; flex:1; height:1px; background:var(--border-subtle); }
 
+/* ── Urgency banner ── */
 .urgency-bar {
   display:flex; align-items:center; gap:12px;
   padding:13px 18px; border-radius:var(--radius-md);
@@ -304,6 +483,7 @@ html, body, [class*="css"] {
 }
 .metric-chip .chip-label { font-family:-apple-system,sans-serif; font-size:10.5px; color:var(--text-muted); }
 
+/* ── Signal rows ── */
 .signal-row {
   display:flex; align-items:flex-start; gap:12px;
   padding:10px 6px; border-bottom:1px solid var(--border-subtle);
@@ -332,6 +512,7 @@ html, body, [class*="css"] {
 .signal-bar-track { width:100%; height:2px; background:var(--bg-elevated); border-radius:99px; margin-top:7px; overflow:hidden; }
 .signal-bar-fill  { height:100%; border-radius:99px; }
 
+/* ── Flag & Step items ── */
 .flag-item {
   display:flex; align-items:flex-start; gap:10px; padding:11px 14px;
   background:rgba(239,68,68,.06); border:1px solid rgba(239,68,68,.15);
@@ -339,7 +520,6 @@ html, body, [class*="css"] {
   margin-bottom:8px; font-size:13px; color:#FCA5A5; line-height:1.55;
 }
 .flag-icon { flex-shrink:0; color:var(--tier-critical); font-size:13px; margin-top:1px; }
-
 .step-item {
   display:flex; align-items:flex-start; gap:10px; padding:9px 14px;
   background:rgba(59,130,246,.055); border:1px solid rgba(59,130,246,.12);
@@ -353,6 +533,7 @@ html, body, [class*="css"] {
   justify-content:center; margin-top:1px;
 }
 
+/* ── SOAP viewer ── */
 .soap-outer  { max-width:1100px; margin:0 auto; }
 .soap-viewer {
   background:var(--bg-surface); border:1px solid var(--border-default);
@@ -378,14 +559,55 @@ html, body, [class*="css"] {
 .soap-meta-label { font-size:9.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
 .soap-meta-value { font-size:12.5px; font-weight:500; color:var(--text-secondary); font-family:var(--font-mono); }
 
+/* ── Empty state ── */
 .empty-state {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   padding:44px 24px; text-align:center; gap:10px;
 }
 .empty-state-icon  { font-size:24px; opacity:.25; }
 .empty-state-title { font-size:13.5px; font-weight:600; color:var(--text-secondary); }
-.empty-state-body  { font-size:12px; color:var(--text-muted); line-height:1.6; max-width:260px; }
+.empty-state-body  { font-size:12px; color:var(--text-muted); line-height:1.6; max-width:280px; }
+.empty-state-hint  { font-size:11.5px; color:var(--accent-blue); opacity:.8; }
 
+/* ── Help item ── */
+.help-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.help-item:last-child { border-bottom: none; }
+.help-item-q {
+  font-size: 12.5px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 5px;
+}
+.help-item-a {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.65;
+}
+
+/* ── Disclaimer footer ── */
+.disclaimer-footer {
+  margin-top: 32px;
+  padding: 14px 18px;
+  background: rgba(245,158,11,0.05);
+  border: 1px solid rgba(245,158,11,0.14);
+  border-radius: var(--radius-md);
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.disclaimer-icon { font-size: 13px; color: var(--accent-amber); flex-shrink: 0; margin-top: 1px; }
+.disclaimer-text { font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+.disclaimer-text strong { color: var(--text-secondary); }
+
+/* ── Demo badge ── */
+.demo-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; padding: 2px 8px;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.22);
+  border-radius: 99px; color: var(--accent-amber);
+  margin-left: 8px; vertical-align: middle;
+}
+
+/* ── Control center label ── */
 .ctrl-label {
   font-size:9.5px; font-weight:700; letter-spacing:1px;
   text-transform:uppercase; color:var(--text-muted);
@@ -393,8 +615,8 @@ html, body, [class*="css"] {
 }
 .ctrl-label:first-child { margin-top:0; }
 
+/* ── Native overrides ── */
 section[data-testid="stSidebar"] { background:var(--bg-surface) !important; border-right:1px solid var(--border-subtle) !important; }
-
 .stTextInput > div > div > input,
 .stTextArea  > div > div > textarea {
   background:var(--bg-elevated) !important; border:1px solid var(--border-default) !important;
@@ -408,7 +630,6 @@ section[data-testid="stSidebar"] { background:var(--bg-surface) !important; bord
   background:var(--bg-elevated) !important; border:1px solid var(--border-default) !important;
   border-radius:var(--radius-md) !important; color:var(--text-primary) !important; font-size:13px !important;
 }
-
 .stButton > button[kind="primary"] {
   background:var(--accent-blue) !important; color:#fff !important; border:none !important;
   border-radius:var(--radius-md) !important; font-weight:600 !important; font-size:13px !important;
@@ -429,19 +650,15 @@ section[data-testid="stSidebar"] { background:var(--bg-surface) !important; bord
   font-weight:500 !important; font-size:13px !important; height:40px !important;
 }
 .stDownloadButton > button:hover { border-color:var(--accent-blue) !important; color:var(--accent-blue) !important; }
-
 .stTabs [data-baseweb="tab-list"] { background:transparent !important; border-bottom:1px solid var(--border-subtle) !important; gap:0 !important; padding:0 !important; }
 .stTabs [data-baseweb="tab"] { background:transparent !important; color:var(--text-muted) !important; font-size:12.5px !important; font-weight:500 !important; padding:9px 16px !important; border-bottom:2px solid transparent !important; border-radius:0 !important; }
 .stTabs [aria-selected="true"] { color:var(--text-primary) !important; border-bottom:2px solid var(--accent-blue) !important; }
 .stTabs [data-baseweb="tab-panel"] { padding:18px 0 0 !important; }
-
 [data-testid="stSegmentedControl"] > div { background:var(--bg-elevated) !important; border:1px solid var(--border-default) !important; border-radius:var(--radius-md) !important; padding:3px !important; gap:2px !important; }
 [data-testid="stSegmentedControl"] button { background:transparent !important; color:var(--text-secondary) !important; border-radius:var(--radius-sm) !important; font-size:12.5px !important; font-weight:500 !important; border:none !important; }
 [data-testid="stSegmentedControl"] button[aria-checked="true"] { background:var(--accent-blue) !important; color:#fff !important; box-shadow:0 1px 4px rgba(0,0,0,.4) !important; }
-
 [data-testid="stPills"] button { background:var(--bg-elevated) !important; color:var(--text-secondary) !important; border:1px solid var(--border-default) !important; border-radius:99px !important; font-size:12px !important; font-weight:500 !important; }
 [data-testid="stPills"] button[aria-pressed="true"] { background:rgba(59,130,246,.15) !important; color:var(--accent-blue) !important; border-color:rgba(59,130,246,.3) !important; }
-
 .stRadio > label { color:var(--text-secondary) !important; font-size:12.5px !important; }
 .stRadio > div > label { color:var(--text-secondary) !important; font-size:13px !important; }
 [data-testid="stAudioInput"]   { background:var(--bg-elevated) !important; border:1px solid var(--border-default) !important; border-radius:var(--radius-md) !important; }
@@ -503,8 +720,8 @@ def render_control_center() -> None:
 
 # Resolve effective values
 specialty_profile: str = SPECIALTY_MAP.get(st.session_state.sc_specialty or "Cardiology", "Cardiology Clinic")
-target_language:   str = LANGUAGE_MAP.get(st.session_state.sc_language   or "Mixed",      "Mixed (Multi-lingual Code-Switching)")
-groq_api_key:   str = (st.session_state.get("_groq_override")   or "").strip() or _vault_groq
+target_language:   str = LANGUAGE_MAP.get(st.session_state.sc_language or "Mixed", "Mixed (Multi-lingual Code-Switching)")
+groq_api_key:   str = (st.session_state.get("_groq_override") or "").strip() or _vault_groq
 gemini_api_key: str = (st.session_state.get("_gemini_override") or "").strip() or _vault_gemini
 
 
@@ -521,11 +738,13 @@ elif has_results:
 else:
     status_cls, status_txt, dot_cls = "ready",  "Ready",   "os-dot pulse"
 
+demo_label = '<span class="demo-badge">Demo</span>' if st.session_state.demo_loaded else ""
+
 hcol1, hcol2 = st.columns([5, 1])
 with hcol1:
     st.markdown(f"""
     <div class="os-header">
-      <div class="os-wordmark">SALIENCE<span> OS</span></div>
+      <div class="os-wordmark">SALIENCE<span> OS</span>{demo_label}</div>
       <div class="os-header-meta">
         <div class="os-status-pill {status_cls}">
           <div class="{dot_cls}"></div>{status_txt}
@@ -539,134 +758,153 @@ with hcol2:
     with st.popover("⚙ Settings", use_container_width=True):
         render_control_center()
 
-# ── Theme token injection ─────────────────────────────────────────────
-_active_theme = st.session_state.get("sc_theme", "Dark")
 
-_LIGHT_TOKENS = """
-<style>
-.stApp {
-  background:
-    radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
-    radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
-    radial-gradient(circle at 72% 92%, rgba(139,92,246,0.03) 0%, transparent 28%),
-    #F0F4F8 !important;
-}
-:root {
-  --bg-base:        #F0F4F8;
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F7F9FC;
-  --bg-hover:       rgba(0,0,0,0.04);
-  --border-subtle:  rgba(0,0,0,0.07);
-  --border-default: rgba(0,0,0,0.12);
-  --border-strong:  rgba(0,0,0,0.20);
-  --text-primary:   #0D1117;
-  --text-secondary: #3D4A5C;
-  --text-muted:     #7A8799;
-  --accent-blue:    #1D6FE8;
-  --accent-blue-dim:#1558C0;
-  --accent-emerald: #0D9065;
-  --accent-amber:   #C07800;
-  --accent-red:     #C8282B;
-  --accent-violet:  #6B3FD4;
-  --accent-cyan:    #0592A8;
-  --tier-critical:  #C8282B;
-  --tier-high:      #C07800;
-  --tier-medium:    #1D6FE8;
-  --tier-low:       #0D9065;
-}
-html, body, [class*="css"] { color: var(--text-primary) !important; }
-.stApp, .block-container { background-color: var(--bg-base) !important; }
-p { color: var(--text-secondary) !important; }
-.soap-viewer {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.10) !important;
-  color: var(--text-primary) !important;
-}
-.soap-body-p { color: var(--text-secondary) !important; }
-.stTextInput > div > div > input,
-.stTextArea  > div > div > textarea {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.15) !important;
-  color: var(--text-primary) !important;
-}
-.stButton > button[kind="secondary"],
-.stButton > button:not([kind]) {
-  background: #FFFFFF !important;
-  color: var(--text-primary) !important;
-  border-color: rgba(0,0,0,0.15) !important;
-}
-.stDownloadButton > button {
-  background: #FFFFFF !important;
-  color: var(--text-primary) !important;
-  border-color: rgba(0,0,0,0.15) !important;
-}
-[data-testid="stSegmentedControl"] > div {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.12) !important;
-}
-[data-testid="stSegmentedControl"] button { color: var(--text-secondary) !important; }
-[data-testid="stPills"] button { background: #FFFFFF !important; border-color: rgba(0,0,0,0.12) !important; color: var(--text-secondary) !important; }
-[data-testid="stPopover"] > div { background: #FFFFFF !important; border-color: rgba(0,0,0,0.10) !important; box-shadow: 0 16px 48px rgba(0,0,0,0.12) !important; }
-section[data-testid="stSidebar"] { background: #FFFFFF !important; }
-.stTabs [data-baseweb="tab-list"] { border-bottom-color: rgba(0,0,0,0.10) !important; }
-.stTabs [data-baseweb="tab"] { color: var(--text-muted) !important; }
-.stTabs [aria-selected="true"] { color: var(--text-primary) !important; }
-.flag-item { color: #9B1C1C !important; background: rgba(200,40,43,0.06) !important; }
-.step-item { color: #1E429F !important; background: rgba(29,111,232,0.06) !important; }
-.signal-reasoning { color: var(--text-secondary) !important; }
-.urgency-bar.CRITICAL { background: rgba(200,40,43,0.06) !important; }
-.urgency-bar.HIGH     { background: rgba(192,120,0,0.06) !important; }
-.urgency-bar.MEDIUM   { background: rgba(29,111,232,0.06) !important; }
-.urgency-bar.LOW      { background: rgba(13,144,101,0.06) !important; }
-.os-header { border-bottom-color: rgba(0,0,0,0.08) !important; }
-.section-label::after { background: rgba(0,0,0,0.08) !important; }
-.signal-row { border-bottom-color: rgba(0,0,0,0.07) !important; }
-.signal-bar-track { background: rgba(0,0,0,0.07) !important; }
-</style>
-"""
+# =====================================================================
+# GOAL 1 — WELCOME PANEL (dismissible, first-load only)
+# =====================================================================
+if not st.session_state.onboarding_dismissed:
+    st.markdown("""
+    <div class="welcome-panel">
+      <div class="welcome-title">Welcome to Salience OS — Clinical Intelligence Workspace</div>
+      <div class="welcome-subtitle">
+        An ambient clinical intelligence platform that identifies, prioritises, and explains clinically relevant signals
+        from consultation audio and examination findings — before documentation begins.
+      </div>
+      <div class="welcome-grid">
+        <div class="welcome-card">
+          <div class="welcome-card-icon">👩‍⚕️</div>
+          <div class="welcome-card-title">For clinicians</div>
+          <div class="welcome-card-body">Consultant physicians, surgeons, emergency doctors, GPs, residents, nurses, and allied health professionals.</div>
+        </div>
+        <div class="welcome-card">
+          <div class="welcome-card-icon">📥</div>
+          <div class="welcome-card-title">Accepted inputs</div>
+          <div class="welcome-card-body">Live audio recording, uploaded audio files (.wav .mp3 .m4a), pasted transcripts, or JSON datasets.</div>
+        </div>
+        <div class="welcome-card">
+          <div class="welcome-card-icon">📤</div>
+          <div class="welcome-card-title">Generated outputs</div>
+          <div class="welcome-card-body">Prioritised clinical signals, safety flags, suggested next steps, structured SOAP note, and explainability reasoning.</div>
+        </div>
+        <div class="welcome-card">
+          <div class="welcome-card-icon">⏱</div>
+          <div class="welcome-card-title">Analysis time</div>
+          <div class="welcome-card-body">Typically 15–40 seconds for a standard consultation. Audio files may take slightly longer during transcription.</div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-_SYSTEM_CHECK = """
-<style>
-@media (prefers-color-scheme: light) {
-  .stApp {
-    background:
-      radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
-      radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
-      #F0F4F8 !important;
-  }
-  :root {
-    --bg-base: #F0F4F8; --bg-surface: #FFFFFF; --bg-elevated: #F7F9FC;
-    --bg-hover: rgba(0,0,0,0.04); --border-subtle: rgba(0,0,0,0.07);
-    --border-default: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.20);
-    --text-primary: #0D1117; --text-secondary: #3D4A5C; --text-muted: #7A8799;
-    --accent-blue: #1D6FE8; --accent-blue-dim: #1558C0;
-    --tier-critical: #C8282B; --tier-high: #C07800;
-    --tier-medium: #1D6FE8; --tier-low: #0D9065;
-  }
-  html, body, [class*="css"] { color: #0D1117 !important; }
-  p { color: #3D4A5C !important; }
-}
-</style>
-"""
+    ob_col1, ob_col2, ob_col3 = st.columns([1, 1, 4])
+    with ob_col1:
+        if st.button("✓  Got it — dismiss", use_container_width=True):
+            st.session_state.onboarding_dismissed = True
+            st.rerun()
+    with ob_col2:
+        if st.button("⬡  Load Demo Patient", use_container_width=True,
+                     help="Populate the workspace with a realistic cardiology case so you can explore all features without real patient data."):
+            st.session_state.transcript              = DEMO_TRANSCRIPT
+            st.session_state.classification          = DEMO_CLASSIFICATION
+            st.session_state.salience_map            = DEMO_SALIENCE_MAP
+            st.session_state.soap_note               = DEMO_SOAP
+            st.session_state.flags                   = DEMO_FLAGS
+            st.session_state.next_steps              = DEMO_NEXT_STEPS
+            st.session_state.pipeline_execution_time = 0.0
+            st.session_state.chart_locked            = False
+            st.session_state.demo_loaded             = True
+            st.session_state.onboarding_dismissed    = True
+            st.rerun()
 
-if _active_theme == "Light":
-    st.markdown(_LIGHT_TOKENS, unsafe_allow_html=True)
-elif _active_theme == "System":
-    st.markdown(_SYSTEM_CHECK, unsafe_allow_html=True)
-# Dark is the default — no injection needed
+
+# =====================================================================
+# GOAL 2 — GUIDED WORKFLOW STRIP
+# Determine current step based on session state for active/done classes
+# =====================================================================
+def _workflow_step(num: int, label: str, step_cls: str, arrow: bool = True) -> str:
+    html = f"""<div class="workflow-step">
+      <div class="workflow-step-num {step_cls}">{num}</div>
+      <span class="workflow-step-label {step_cls}">{label}</span>
+    </div>"""
+    if arrow:
+        html += '<span class="workflow-arrow">›</span>'
+    return html
+
+_has_input   = has_results or st.session_state.demo_loaded
+_has_signals = bool(st.session_state.salience_map)
+_has_soap    = bool(st.session_state.soap_note)
+
+def _step_cls(condition_done: bool, condition_active: bool) -> str:
+    if condition_done:   return "done"
+    if condition_active: return "active"
+    return ""
+
+s1 = _step_cls(_has_input, not _has_input)
+s2 = _step_cls(_has_input, not _has_input)
+s3 = _step_cls(_has_signals, _has_input and not _has_signals)
+s4 = _step_cls(_has_signals, _has_signals and not _has_soap)
+s5 = _step_cls(_has_soap, _has_signals and not _has_soap)
+s6 = _step_cls(chart_locked, _has_soap and not chart_locked)
+
+workflow_html = '<div class="workflow-strip">'
+workflow_html += _workflow_step(1, "Paste / Upload / Record",  s1)
+workflow_html += _workflow_step(2, "Add Exam Findings",        s2)
+workflow_html += _workflow_step(3, "Run Analysis",             s3)
+workflow_html += _workflow_step(4, "Review Signals",           s4)
+workflow_html += _workflow_step(5, "Review SOAP Note",         s5)
+workflow_html += _workflow_step(6, "Export or Sign Chart",     s6, arrow=False)
+workflow_html += "</div>"
+st.markdown(workflow_html, unsafe_allow_html=True)
 
 
 # =====================================================================
 # INPUT WORKSPACE
 # =====================================================================
 st.markdown('<div class="section-label">Consultation Input</div>', unsafe_allow_html=True)
+
+# Demo load button outside welcome panel (persistent, accessible after dismiss)
+if not st.session_state.demo_loaded:
+    demo_col, _ = st.columns([1, 4])
+    with demo_col:
+        if st.button("⬡  Load Demo Patient",
+                     help="Populate with a realistic cardiology case — 58-year-old male with ACS presentation. No real patient data required.",
+                     use_container_width=True):
+            st.session_state.transcript              = DEMO_TRANSCRIPT
+            st.session_state.classification          = DEMO_CLASSIFICATION
+            st.session_state.salience_map            = DEMO_SALIENCE_MAP
+            st.session_state.soap_note               = DEMO_SOAP
+            st.session_state.flags                   = DEMO_FLAGS
+            st.session_state.next_steps              = DEMO_NEXT_STEPS
+            st.session_state.pipeline_execution_time = 0.0
+            st.session_state.chart_locked            = False
+            st.session_state.demo_loaded             = True
+            st.rerun()
+else:
+    clear_col, _ = st.columns([1, 4])
+    with clear_col:
+        if st.button("✕  Clear Demo Data",
+                     help="Remove demo case and start a fresh consultation.",
+                     use_container_width=True):
+            for k in ("transcript", "salience_map", "soap_note", "flags", "next_steps", "classification"):
+                st.session_state[k] = _DEFAULTS[k]
+            st.session_state.demo_loaded  = False
+            st.session_state.chart_locked = False
+            st.session_state.pipeline_execution_time = 0.0
+            st.rerun()
+
 col_input, col_exam = st.columns([1.25, 1], gap="large")
 
 with col_input:
     input_vector: str = st.radio(
         "Input mode",
         ["Text / Paste Transcript", "Live Audio (Microphone)", "File Upload (.wav / .mp3 / .json)"],
-        horizontal=False, label_visibility="collapsed",
+        horizontal=False,
+        label_visibility="collapsed",
+        help=(
+            "Choose how to provide consultation data.\n\n"
+            "• Text: paste a transcript or typed notes directly.\n"
+            "• Live Audio: record the consultation room using your device microphone.\n"
+            "• File Upload: upload a pre-recorded audio file or a JSON dataset."
+        ),
     )
 
     has_valid_audio_payload: bool = False
@@ -676,7 +914,10 @@ with col_input:
     if "Text" in input_vector:
         injected_text_payload = st.text_area(
             "Transcript",
-            placeholder="Paste consultation transcript, patient notes, or test data…",
+            placeholder=(
+                "Paste a consultation transcript, clinical notes, or dictated text here.\n\n"
+                "Include the patient's presenting complaint, history, and any verbal examination findings."
+            ),
             height=200, label_visibility="collapsed",
         )
         if injected_text_payload.strip():
@@ -685,10 +926,13 @@ with col_input:
 
     elif "Live Audio" in input_vector:
         if not PYDUB_AVAILABLE:
-            st.warning("Audio processing unavailable. Use Text input instead.")
+            st.warning("Audio processing unavailable on this deployment. Switch to Text input to continue.")
         else:
-            st.caption("Position microphone toward conversation, then tap record.")
-            audio_file = st.audio_input("Record audio")
+            st.caption("Place your device near the consultation. Press record, speak, then press stop when finished.")
+            audio_file = st.audio_input(
+                "Record audio",
+                help="Captures room audio using your microphone. The recording is processed locally and sent securely to the transcription service.",
+            )
             if audio_file is not None:
                 try:
                     with open(TEMP_AUDIO, "wb") as fh:
@@ -698,6 +942,7 @@ with col_input:
                     st.error(f"Could not save audio: {e}")
 
     else:
+        st.caption("Supported: .wav, .mp3, .m4a audio files, or a JSON case dataset.")
         uploaded_file = st.file_uploader(
             "Upload audio or dataset", type=["wav", "mp3", "m4a", "json"],
             label_visibility="collapsed",
@@ -740,24 +985,39 @@ with col_input:
 
 with col_exam:
     st.markdown('<div class="section-label">Physical Examination</div>', unsafe_allow_html=True)
-    st.caption("Findings are merged with transcript during analysis.")
+    st.caption(
+        "Enter your bedside findings by system. These are merged with the consultation transcript "
+        "during analysis to improve signal accuracy and SOAP note completeness."
+    )
     exam_tabs = st.tabs(["Thoracic", "GI / Abdomen", "Neuro / Reflex", "Musculoskeletal"])
     with exam_tabs[0]:
+        st.caption("Cardiovascular and respiratory examination findings — heart sounds, rhythm, breath sounds, oedema.")
         notes_thoracic: str = st.text_area("Thoracic",
-            value="Cardiovascular: Tachycardic, rhythm regular. S1 and S2 distinct, no audible murmurs, rubs, or gallops. Significant chest wall diaphoresis noted; patient actively clutching retrosternal area. Respiratory: Tachypneic, shallow respirations. Lungs clear to auscultation bilaterally (CTAB).",
-            height=140, label_visibility="collapsed")
+            value=st.session_state.demo_thoracic if st.session_state.demo_loaded else
+                  "Cardiovascular: Tachycardic, rhythm regular. S1 and S2 distinct, no audible murmurs, rubs, or gallops. Significant chest wall diaphoresis noted; patient actively clutching retrosternal area. Respiratory: Tachypneic, shallow respirations. Lungs clear to auscultation bilaterally (CTAB).",
+            height=120, label_visibility="collapsed",
+            help="Include heart rate, rhythm, heart sounds, murmurs, respiratory rate, and chest auscultation findings.")
     with exam_tabs[1]:
+        st.caption("Abdominal examination — tenderness, guarding, bowel sounds, organomegaly.")
         notes_abdominal: str = st.text_area("GI",
-            value="Abdomen soft, symmetric, and non-distended. Bowel sounds active in all 4 quadrants. No localized tenderness, guarding, or rebound. No hepatosplenomegaly. Epigastric region non-tender.",
-            height=140, label_visibility="collapsed")
+            value=st.session_state.demo_abdominal if st.session_state.demo_loaded else
+                  "Abdomen soft, symmetric, and non-distended. Bowel sounds active in all 4 quadrants. No localized tenderness, guarding, or rebound. No hepatosplenomegaly. Epigastric region non-tender.",
+            height=120, label_visibility="collapsed",
+            help="Document abdominal tenderness, rigidity, guarding, rebound, and any organomegaly.")
     with exam_tabs[2]:
+        st.caption("Neurological examination — orientation, pupils, reflexes, focal deficits.")
         notes_neuro: str = st.text_area("Neuro",
-            value="Patient alert and oriented to person, place, and time (A&Ox3). Pupils equal, round, and reactive to light (PEERRLA). Observable orthostatic lightheadedness upon sitting up. Gross motor and sensory function intact.",
-            height=140, label_visibility="collapsed")
+            value=st.session_state.demo_neuro if st.session_state.demo_loaded else
+                  "Patient alert and oriented to person, place, and time (A&Ox3). Pupils equal, round, and reactive to light (PEERRLA). Observable orthostatic lightheadedness upon sitting up. Gross motor and sensory function intact.",
+            height=120, label_visibility="collapsed",
+            help="Record GCS, pupillary responses, orientation, focal weakness, sensory deficits, and reflexes.")
     with exam_tabs[3]:
+        st.caption("Musculoskeletal examination — range of motion, joint tenderness, swelling.")
         notes_ortho: str = st.text_area("MSK",
-            value="Mild focal tenderness over lumbar paraspinal muscles. Left shoulder and left mandibular jaw display full passive range of motion with zero localized joint or bone tenderness.",
-            height=140, label_visibility="collapsed")
+            value=st.session_state.demo_ortho if st.session_state.demo_loaded else
+                  "Mild focal tenderness over lumbar paraspinal muscles. Left shoulder and left mandibular jaw display full passive range of motion with zero localized joint or bone tenderness.",
+            height=120, label_visibility="collapsed",
+            help="Include range of motion, joint tenderness, swelling, crepitus, and any deformity.")
 
 compiled_exam: str = (
     f"- Thoracic: {notes_thoracic or 'Deferred/Normal'}\n"
@@ -776,15 +1036,34 @@ run_pipeline: bool = False
 if has_valid_audio_payload:
     trigger_col, _ = st.columns([1, 2])
     with trigger_col:
-        run_pipeline = st.button("⬡  Analyse Consultation", type="primary", use_container_width=True)
+        run_pipeline = st.button(
+            "⬡  Analyse Consultation",
+            type="primary",
+            use_container_width=True,
+            help=(
+                "Start the clinical intelligence pipeline.\n\n"
+                "The system will:\n"
+                "1. Transcribe audio (if applicable)\n"
+                "2. Extract and weight clinical entities\n"
+                "3. Identify safety flags\n"
+                "4. Generate a structured SOAP note\n\n"
+                "Typical duration: 15–40 seconds."
+            ),
+        )
 else:
-    st.markdown("""
-    <div class="empty-state">
-      <div class="empty-state-icon">⬡</div>
-      <div class="empty-state-title">Awaiting input</div>
-      <div class="empty-state-body">Paste a transcript, record audio, or upload a file to begin clinical analysis.</div>
-    </div>
-    """, unsafe_allow_html=True)
+    if not st.session_state.transcript:
+        st.markdown("""
+        <div class="empty-state">
+          <div class="empty-state-icon">⬡</div>
+          <div class="empty-state-title">No consultation loaded</div>
+          <div class="empty-state-body">
+            Paste a transcript using the Text input above, record live audio, or upload an audio file to begin analysis.
+          </div>
+          <div class="empty-state-hint">
+            New here? Use ⬡ Load Demo Patient to explore the platform with a sample case.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # =====================================================================
@@ -803,9 +1082,7 @@ if has_valid_audio_payload and run_pipeline:
         t0 = time.time()
         with st.status("Running clinical intelligence pipeline…", expanded=True) as status_widget:
             try:
-                # ── Stage 1: Transcription ──────────────────────────────
                 extracted_raw_text: str = ""
-
                 if bypass_audio_stt:
                     st.write("✓  Text input detected — bypassing STT")
                     extracted_raw_text = injected_text_payload
@@ -837,7 +1114,6 @@ if has_valid_audio_payload and run_pipeline:
                 if not (extracted_raw_text or "").strip():
                     raise ValueError("Transcription returned empty text. Check audio quality or API key.")
 
-                # ── Stage 2: Gemini ────────────────────────────────────
                 st.write("⬡  Running salience analysis via Gemini 2.5 Flash…")
                 genai.configure(api_key=gemini_api_key)
                 engine = genai.GenerativeModel("gemini-2.5-flash")
@@ -888,6 +1164,7 @@ Generate a valid JSON payload object matching exactly this structure (no markdow
                 st.session_state.next_steps              = list(parsed.get("suggested_next_steps", []))
                 st.session_state.pipeline_execution_time = round(time.time() - t0, 2)
                 st.session_state.chart_locked            = False
+                st.session_state.demo_loaded             = False
 
                 st.write("✓  Pipeline complete")
                 status_widget.update(
@@ -903,9 +1180,6 @@ Generate a valid JSON payload object matching exactly this structure (no markdow
 
 # =====================================================================
 # RESULTS WORKSPACE
-# BUG-C FIX: correct indentation throughout; SOAP tab body restored;
-#            reasoning column restored in signals tab;
-#            all tab bodies are non-empty and properly nested.
 # =====================================================================
 if st.session_state.transcript:
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
@@ -920,6 +1194,7 @@ if st.session_state.transcript:
     if urgency not in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
         urgency = "MEDIUM"
 
+    elapsed_label = f"{elapsed}s" if elapsed > 0 else "Demo"
     st.markdown(f"""
     <div class="urgency-bar {urgency}">
       <div>
@@ -929,7 +1204,7 @@ if st.session_state.transcript:
       <div class="urgency-metrics">
         <span class="metric-chip"><span class="chip-label">Signals</span>{n_signals}</span>
         <span class="metric-chip"><span class="chip-label">Flags</span>{n_flags}</span>
-        <span class="metric-chip"><span class="chip-label">Time</span>{elapsed}s</span>
+        <span class="metric-chip"><span class="chip-label">Time</span>{elapsed_label}</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -941,13 +1216,16 @@ if st.session_state.transcript:
     # ── Tab 1: Clinical Signals ────────────────────────────────────
     with output_tabs[0]:
         if st.session_state.salience_map:
-            # BUG-C FIX: for loop is now correctly inside the if block
+            st.caption(
+                "Entities ranked by clinical salience — a weighted measure of urgency, specificity, and diagnostic relevance. "
+                "Score ≥ 85 = critical priority. 70–84 = high. 50–69 = medium. < 50 = low or contextual noise."
+            )
             for item in sorted(st.session_state.salience_map,
                                key=lambda x: x.get("salience_score", 0), reverse=True):
                 score    = float(item.get("salience_score", 0.0))
                 entity   = str(item.get("entity", ""))
                 category = str(item.get("category", ""))
-                reasoning = str(item.get("reasoning_context", ""))  # restored
+                reasoning = str(item.get("reasoning_context", ""))
                 pct      = int(score * 100)
                 if score >= 0.85:   ring_cls, bc = "score-critical", "var(--tier-critical)"
                 elif score >= 0.70: ring_cls, bc = "score-high",     "var(--tier-high)"
@@ -967,16 +1245,20 @@ if st.session_state.transcript:
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            # BUG-C FIX: else is now correctly paired with the if block above
             st.markdown("""
             <div class="empty-state">
               <div class="empty-state-icon">◎</div>
-              <div class="empty-state-title">No signals extracted</div>
+              <div class="empty-state-title">No clinical signals extracted yet</div>
+              <div class="empty-state-body">
+                Run an analysis on a consultation transcript or audio recording.
+                Signals will appear here ranked by clinical importance.
+              </div>
             </div>""", unsafe_allow_html=True)
 
     # ── Tab 2: Safety Flags ────────────────────────────────────────
     with output_tabs[1]:
         if st.session_state.flags:
+            st.caption("Critical alerts identified by the safety screening layer. Each flag should be reviewed before signing the clinical note.")
             for alert in st.session_state.flags:
                 st.markdown(f'<div class="flag-item"><div class="flag-icon">⚑</div><div>{alert}</div></div>',
                             unsafe_allow_html=True)
@@ -985,24 +1267,32 @@ if st.session_state.transcript:
             <div class="empty-state">
               <div class="empty-state-icon">✓</div>
               <div class="empty-state-title">No safety flags raised</div>
-              <div class="empty-state-body">All clinical safety parameters cleared.</div>
+              <div class="empty-state-body">
+                The safety screening layer found no critical alerts for this consultation.
+                Always apply independent clinical judgement before sign-off.
+              </div>
             </div>""", unsafe_allow_html=True)
 
     # ── Tab 3: Next Steps ──────────────────────────────────────────
     with output_tabs[2]:
         if st.session_state.next_steps:
+            st.caption("Suggested investigations, referrals, and management actions based on the extracted clinical signals. Review and adapt to your clinical context.")
             for idx, step in enumerate(st.session_state.next_steps, 1):
                 st.markdown(f'<div class="step-item"><div class="step-num">{idx}</div><div>{step}</div></div>',
                             unsafe_allow_html=True)
         else:
-            st.markdown('<div class="empty-state"><div class="empty-state-title">No next steps generated</div></div>',
-                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class="empty-state">
+              <div class="empty-state-icon">→</div>
+              <div class="empty-state-title">No next steps generated yet</div>
+              <div class="empty-state-body">
+                Run an analysis to receive suggested investigations, referrals, and management actions.
+              </div>
+            </div>""", unsafe_allow_html=True)
 
     # ── Tab 4: SOAP Note ───────────────────────────────────────────
     with output_tabs[3]:
         soap_raw: str = st.session_state.soap_note
-
-        # Pre-compute ternary values — avoids nested quotes inside f-string
         chart_status_label = "Signed & Locked" if chart_locked else "Pending Review"
         chart_status_color = "var(--accent-violet)" if chart_locked else "var(--accent-amber)"
         generated_at       = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -1012,13 +1302,16 @@ if st.session_state.transcript:
           <div class="soap-meta-item"><span class="soap-meta-label">Generated</span><span class="soap-meta-value">{generated_at}</span></div>
           <div class="soap-meta-item"><span class="soap-meta-label">Specialty</span><span class="soap-meta-value">{specialty_profile}</span></div>
           <div class="soap-meta-item"><span class="soap-meta-label">Status</span><span class="soap-meta-value" style="color:{chart_status_color}">{chart_status_label}</span></div>
-          <div class="soap-meta-item"><span class="soap-meta-label">Time</span><span class="soap-meta-value">{elapsed}s</span></div>
+          <div class="soap-meta-item"><span class="soap-meta-label">Time</span><span class="soap-meta-value">{elapsed_label}</span></div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Editable before sign-off; read-only render once locked
         if not chart_locked:
-            st.caption("Review and amend the note below before signing.")
+            st.caption(
+                "Review and amend the AI-generated note below. "
+                "Correct any inaccuracies, add missing clinical details, and verify all four sections "
+                "before signing. The note is fully editable until signed."
+            )
             edited_soap = st.text_area(
                 "SOAP Note",
                 value=soap_raw,
@@ -1048,8 +1341,10 @@ if st.session_state.transcript:
         act1, act2, act3 = st.columns(3)
 
         with act1:
-            st.button("⎘  Copy SOAP", key="copy_soap_btn", use_container_width=True,
-                      help="Select all text above, then Ctrl+C / Cmd+C")
+            st.button(
+                "⎘  Copy SOAP", key="copy_soap_btn", use_container_width=True,
+                help="Select all text in the editor above (Ctrl+A / Cmd+A), then copy (Ctrl+C / Cmd+C).",
+            )
 
         with act2:
             if edited_soap.strip() and FPDF_AVAILABLE:
@@ -1061,18 +1356,34 @@ if st.session_state.transcript:
                         file_name=f"SalienceOS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                         mime="application/pdf",
                         use_container_width=True,
+                        help="Download the SOAP note as a formatted PDF document. The exported PDF reflects the current state of the editable note.",
                     )
                 except Exception as pdf_err:
                     st.error(f"PDF error: {pdf_err}")
             else:
-                st.button("↓  Export PDF", disabled=True, use_container_width=True)
+                st.button("↓  Export PDF", disabled=True, use_container_width=True,
+                          help="Generate a note by running analysis first, then export to PDF.")
 
         with act3:
             if chart_locked:
-                st.button("✓  Synced to FHIR", disabled=True, use_container_width=True)
+                st.button("✓  Synced to FHIR", disabled=True, use_container_width=True,
+                          help="This chart has been signed and pushed to the simulated EHR. No further edits are permitted.")
             else:
-                if st.button("Sign & Push to EHR", type="primary", use_container_width=True):
-                    st.session_state.soap_note = edited_soap  # persist edits before locking
+                if st.button(
+                    "Sign & Push to EHR",
+                    type="primary",
+                    use_container_width=True,
+                    help=(
+                        "Digitally sign the SOAP note and push it to the simulated EHR system.\n\n"
+                        "⚠ Before signing, verify:\n"
+                        "• Patient identity and date of birth\n"
+                        "• All four SOAP sections are accurate\n"
+                        "• Safety flags have been reviewed\n"
+                        "• Allergies and medications are correct\n\n"
+                        "Signing is irreversible in a live EHR system."
+                    ),
+                ):
+                    st.session_state.soap_note = edited_soap
                     with st.spinner("Synchronising with HL7/FHIR endpoint…"):
                         time.sleep(2.0)
                     st.session_state.chart_locked = True
@@ -1081,9 +1392,13 @@ if st.session_state.transcript:
                     st.rerun()
 
     # ── Tab 5: Explainability ──────────────────────────────────────
-    # BUG-C FIX: this block was de-dented outside the `if transcript:` block
     with output_tabs[4]:
         if st.session_state.salience_map:
+            st.caption(
+                "Full reasoning trace for each extracted entity. "
+                "Salience scores reflect the model's assessment of clinical urgency, specificity, and diagnostic relevance "
+                "within the context of the selected specialty. Always apply independent clinical judgement."
+            )
             for idx, item in enumerate(
                 sorted(st.session_state.salience_map,
                        key=lambda x: x.get("salience_score", 0), reverse=True), 1
@@ -1116,5 +1431,85 @@ if st.session_state.transcript:
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.markdown('<div class="empty-state"><div class="empty-state-title">No reasoning data available</div></div>',
-                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class="empty-state">
+              <div class="empty-state-icon">◈</div>
+              <div class="empty-state-title">No reasoning data available yet</div>
+              <div class="empty-state-body">
+                Run an analysis to see the model's full reasoning for each extracted clinical signal.
+              </div>
+            </div>""", unsafe_allow_html=True)
+
+
+# =====================================================================
+# GOAL 6 — HELP & DOCUMENTATION DRAWER
+# =====================================================================
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+with st.expander("❓ Clinical Documentation Help", expanded=False):
+    st.markdown("""
+    <div class="help-item">
+      <div class="help-item-q">What is Salience Scoring?</div>
+      <div class="help-item-a">
+        Salience scoring is a weighted measure (0–100%) of how clinically important each extracted entity is
+        within the context of this consultation and specialty. It combines urgency, diagnostic specificity,
+        and relevance to the chief complaint. Scores of 85% or above are flagged as critical priority.
+        Scores below 50% typically represent contextual noise or low-relevance background information.
+      </div>
+    </div>
+    <div class="help-item">
+      <div class="help-item-q">What are Clinical Signals?</div>
+      <div class="help-item-a">
+        Clinical signals are named entities extracted from the consultation — symptoms, diagnoses, medications,
+        durations, and examination findings — ranked by their salience score. The "Clinical Signals" tab
+        shows the top-priority entities the system identified as most likely to influence your clinical decision-making.
+        Always cross-reference with the full transcript and your bedside assessment.
+      </div>
+    </div>
+    <div class="help-item">
+      <div class="help-item-q">What are Safety Flags?</div>
+      <div class="help-item-a">
+        Safety flags are critical alerts generated by the safety screening layer — for example, time-sensitive
+        presentations (STEMI, stroke), high-risk drug interactions, or missing critical assessments. They are not
+        diagnoses. They are prompts to verify that important safety checks have been performed before signing
+        the clinical note. The absence of flags does not exclude a serious diagnosis.
+      </div>
+    </div>
+    <div class="help-item">
+      <div class="help-item-q">How are SOAP notes generated?</div>
+      <div class="help-item-a">
+        The SOAP note is generated from consultation transcript entities with a salience score of 0.5 or above,
+        combined with your physical examination findings. Subjective content is derived exclusively from
+        high-salience transcript entities. Objective content incorporates your documented examination findings.
+        Assessment and Plan are AI-generated based on the synthesised clinical picture and specialty context.
+        The note is fully editable before sign-off.
+      </div>
+    </div>
+    <div class="help-item">
+      <div class="help-item-q">What should clinicians verify before signing?</div>
+      <div class="help-item-a">
+        Before signing, verify: (1) patient identity and date of birth are correct; (2) the chief complaint
+        and history accurately reflect what was documented; (3) examination findings in the Objective section
+        match your bedside findings; (4) the Assessment reflects your clinical judgement — not just the AI output;
+        (5) the Plan is appropriate for your patient's context, allergies, comorbidities, and local guidelines;
+        (6) all Safety Flags have been reviewed and addressed; (7) medications and allergies are accurately listed.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# =====================================================================
+# GOAL 7 — CLINICAL DISCLAIMER FOOTER
+# =====================================================================
+st.markdown("""
+<div class="disclaimer-footer">
+  <div class="disclaimer-icon">⚠</div>
+  <div class="disclaimer-text">
+    <strong>Clinical Decision Support Tool — Not a Substitute for Clinical Judgement.</strong>
+    SALIENCE OS is designed to assist with clinical documentation and signal identification.
+    It does not diagnose, prescribe, or replace the assessment of a qualified healthcare professional.
+    All outputs must be reviewed, verified, and amended by the responsible clinician before use in patient care.
+    Final clinical judgement, including documentation sign-off, remains the sole responsibility of the
+    treating healthcare professional.
+  </div>
+</div>
+""", unsafe_allow_html=True)
