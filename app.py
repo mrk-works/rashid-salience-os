@@ -538,121 +538,7 @@ with hcol1:
 with hcol2:
     with st.popover("⚙ Settings", use_container_width=True):
         render_control_center()
-# ── Theme token injection ─────────────────────────────────────────────
-_active_theme = st.session_state.get("sc_theme", "Dark")
 
-_LIGHT_TOKENS = """
-<style>
-.stApp {
-  background:
-    radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
-    radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
-    radial-gradient(circle at 72% 92%, rgba(139,92,246,0.03) 0%, transparent 28%),
-    #F0F4F8 !important;
-}
-:root {
-  --bg-base:        #F0F4F8;
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #F7F9FC;
-  --bg-hover:       rgba(0,0,0,0.04);
-  --border-subtle:  rgba(0,0,0,0.07);
-  --border-default: rgba(0,0,0,0.12);
-  --border-strong:  rgba(0,0,0,0.20);
-  --text-primary:   #0D1117;
-  --text-secondary: #3D4A5C;
-  --text-muted:     #7A8799;
-  --accent-blue:    #1D6FE8;
-  --accent-blue-dim:#1558C0;
-  --accent-emerald: #0D9065;
-  --accent-amber:   #C07800;
-  --accent-red:     #C8282B;
-  --accent-violet:  #6B3FD4;
-  --accent-cyan:    #0592A8;
-  --tier-critical:  #C8282B;
-  --tier-high:      #C07800;
-  --tier-medium:    #1D6FE8;
-  --tier-low:       #0D9065;
-}
-html, body, [class*="css"] { color: var(--text-primary) !important; }
-.stApp, .block-container { background-color: var(--bg-base) !important; }
-p { color: var(--text-secondary) !important; }
-.soap-viewer {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.10) !important;
-  color: var(--text-primary) !important;
-}
-.soap-body-p { color: var(--text-secondary) !important; }
-.stTextInput > div > div > input,
-.stTextArea  > div > div > textarea {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.15) !important;
-  color: var(--text-primary) !important;
-}
-.stButton > button[kind="secondary"],
-.stButton > button:not([kind]) {
-  background: #FFFFFF !important;
-  color: var(--text-primary) !important;
-  border-color: rgba(0,0,0,0.15) !important;
-}
-.stDownloadButton > button {
-  background: #FFFFFF !important;
-  color: var(--text-primary) !important;
-  border-color: rgba(0,0,0,0.15) !important;
-}
-[data-testid="stSegmentedControl"] > div {
-  background: #FFFFFF !important;
-  border-color: rgba(0,0,0,0.12) !important;
-}
-[data-testid="stSegmentedControl"] button { color: var(--text-secondary) !important; }
-[data-testid="stPills"] button { background: #FFFFFF !important; border-color: rgba(0,0,0,0.12) !important; color: var(--text-secondary) !important; }
-[data-testid="stPopover"] > div { background: #FFFFFF !important; border-color: rgba(0,0,0,0.10) !important; box-shadow: 0 16px 48px rgba(0,0,0,0.12) !important; }
-section[data-testid="stSidebar"] { background: #FFFFFF !important; }
-.stTabs [data-baseweb="tab-list"] { border-bottom-color: rgba(0,0,0,0.10) !important; }
-.stTabs [data-baseweb="tab"] { color: var(--text-muted) !important; }
-.stTabs [aria-selected="true"] { color: var(--text-primary) !important; }
-.flag-item { color: #9B1C1C !important; background: rgba(200,40,43,0.06) !important; }
-.step-item { color: #1E429F !important; background: rgba(29,111,232,0.06) !important; }
-.signal-reasoning { color: var(--text-secondary) !important; }
-.urgency-bar.CRITICAL { background: rgba(200,40,43,0.06) !important; }
-.urgency-bar.HIGH     { background: rgba(192,120,0,0.06) !important; }
-.urgency-bar.MEDIUM   { background: rgba(29,111,232,0.06) !important; }
-.urgency-bar.LOW      { background: rgba(13,144,101,0.06) !important; }
-.os-header { border-bottom-color: rgba(0,0,0,0.08) !important; }
-.section-label::after { background: rgba(0,0,0,0.08) !important; }
-.signal-row { border-bottom-color: rgba(0,0,0,0.07) !important; }
-.signal-bar-track { background: rgba(0,0,0,0.07) !important; }
-</style>
-"""
-
-_SYSTEM_CHECK = """
-<style>
-@media (prefers-color-scheme: light) {
-  .stApp {
-    background:
-      radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
-      radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
-      #F0F4F8 !important;
-  }
-  :root {
-    --bg-base: #F0F4F8; --bg-surface: #FFFFFF; --bg-elevated: #F7F9FC;
-    --bg-hover: rgba(0,0,0,0.04); --border-subtle: rgba(0,0,0,0.07);
-    --border-default: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.20);
-    --text-primary: #0D1117; --text-secondary: #3D4A5C; --text-muted: #7A8799;
-    --accent-blue: #1D6FE8; --accent-blue-dim: #1558C0;
-    --tier-critical: #C8282B; --tier-high: #C07800;
-    --tier-medium: #1D6FE8; --tier-low: #0D9065;
-  }
-  html, body, [class*="css"] { color: #0D1117 !important; }
-  p { color: #3D4A5C !important; }
-}
-</style>
-"""
-
-if _active_theme == "Light":
-    st.markdown(_LIGHT_TOKENS, unsafe_allow_html=True)
-elif _active_theme == "System":
-    st.markdown(_SYSTEM_CHECK, unsafe_allow_html=True)
-# Dark is the default — no injection needed
 
 # =====================================================================
 # INPUT WORKSPACE
@@ -997,86 +883,86 @@ if st.session_state.transcript:
                         unsafe_allow_html=True)
 
     # ── Tab 4: SOAP Note ───────────────────────────────────────────
-    # BUG-C FIX: this tab body was completely empty in the pasted code
     with output_tabs[3]:
-    soap_raw = st.session_state.soap_note
-    chart_status_label = "Signed & Locked" if chart_locked else "Pending Review"
-    chart_status_color = "var(--accent-violet)" if chart_locked else "var(--accent-amber)"
-    generated_at       = datetime.now().strftime("%Y-%m-%d %H:%M")
+        soap_raw: str = st.session_state.soap_note
 
-    st.markdown(f"""
-    <div class="soap-meta-row">
-      <div class="soap-meta-item"><span class="soap-meta-label">Generated</span><span class="soap-meta-value">{generated_at}</span></div>
-      <div class="soap-meta-item"><span class="soap-meta-label">Specialty</span><span class="soap-meta-value">{specialty_profile}</span></div>
-      <div class="soap-meta-item"><span class="soap-meta-label">Status</span><span class="soap-meta-value" style="color:{chart_status_color}">{chart_status_label}</span></div>
-      <div class="soap-meta-item"><span class="soap-meta-label">Time</span><span class="soap-meta-value">{elapsed}s</span></div>
-    </div>
-    """, unsafe_allow_html=True)
+        # Pre-compute ternary values — avoids nested quotes inside f-string
+        chart_status_label = "Signed & Locked" if chart_locked else "Pending Review"
+        chart_status_color = "var(--accent-violet)" if chart_locked else "var(--accent-amber)"
+        generated_at       = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    # Editable SOAP note — doctor reviews and amends before sign-off
-    if not chart_locked:
-        st.caption("Review and amend the note below before signing.")
-        edited_soap = st.text_area(
-            "SOAP Note",
-            value=soap_raw,
-            height=420,
-            key="soap_editor",
-            label_visibility="collapsed",
-        )
-    else:
-        # Locked — show styled read-only render
-        edited_soap = soap_raw
-        rendered: list[str] = []
-        for line in soap_raw.split("\n"):
-            s = line.strip()
-            if s.startswith("###"):
-                rendered.append(f'<div class="soap-section-header">{s.replace("###","").strip().rstrip(":")}</div>')
-            elif s.startswith("**") and s.endswith("**"):
-                rendered.append(f'<span class="soap-bold">{s.replace("**","").strip()}</span><br>')
-            elif s:
-                rendered.append(f'<p class="soap-body-p">{s}</p>')
+        st.markdown(f"""
+        <div class="soap-meta-row">
+          <div class="soap-meta-item"><span class="soap-meta-label">Generated</span><span class="soap-meta-value">{generated_at}</span></div>
+          <div class="soap-meta-item"><span class="soap-meta-label">Specialty</span><span class="soap-meta-value">{specialty_profile}</span></div>
+          <div class="soap-meta-item"><span class="soap-meta-label">Status</span><span class="soap-meta-value" style="color:{chart_status_color}">{chart_status_label}</span></div>
+          <div class="soap-meta-item"><span class="soap-meta-label">Time</span><span class="soap-meta-value">{elapsed}s</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Editable before sign-off; read-only render once locked
+        if not chart_locked:
+            st.caption("Review and amend the note below before signing.")
+            edited_soap = st.text_area(
+                "SOAP Note",
+                value=soap_raw,
+                height=420,
+                key="soap_editor",
+                label_visibility="collapsed",
+            )
+        else:
+            edited_soap = soap_raw
+            rendered: list[str] = []
+            for line in soap_raw.split("\n"):
+                s = line.strip()
+                if s.startswith("###"):
+                    rendered.append(f'<div class="soap-section-header">{s.replace("###","").strip().rstrip(":")}</div>')
+                elif s.startswith("**") and s.endswith("**"):
+                    rendered.append(f'<span class="soap-bold">{s.replace("**","").strip()}</span><br>')
+                elif s:
+                    rendered.append(f'<p class="soap-body-p">{s}</p>')
+                else:
+                    rendered.append('<div style="height:6px"></div>')
+            st.markdown(
+                f'<div class="soap-outer"><div class="soap-viewer">{"".join(rendered)}</div></div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+        act1, act2, act3 = st.columns(3)
+
+        with act1:
+            st.button("⎘  Copy SOAP", key="copy_soap_btn", use_container_width=True,
+                      help="Select all text above, then Ctrl+C / Cmd+C")
+
+        with act2:
+            if edited_soap.strip() and FPDF_AVAILABLE:
+                try:
+                    pdf_bytes: bytes = generate_clinical_pdf(edited_soap, specialty_profile)
+                    st.download_button(
+                        label="↓  Export PDF",
+                        data=pdf_bytes,
+                        file_name=f"SalienceOS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                        mime="application/pdf",
+                        use_container_width=True,
+                    )
+                except Exception as pdf_err:
+                    st.error(f"PDF error: {pdf_err}")
             else:
-                rendered.append('<div style="height:6px"></div>')
-        st.markdown(
-            f'<div class="soap-outer"><div class="soap-viewer">{"".join(rendered)}</div></div>',
-            unsafe_allow_html=True,
-        )
+                st.button("↓  Export PDF", disabled=True, use_container_width=True)
 
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-    act1, act2, act3 = st.columns(3)
-
-    with act1:
-        st.button("⎘  Copy SOAP", key="copy_soap_btn", use_container_width=True,
-                  help="Select all text above, then Ctrl+C / Cmd+C")
-
-    with act2:
-        # PDF uses the edited version, not raw session state
-        if edited_soap.strip() and FPDF_AVAILABLE:
-            try:
-                pdf_bytes = generate_clinical_pdf(edited_soap, specialty_profile)
-                st.download_button(
-                    "↓  Export PDF", data=pdf_bytes,
-                    file_name=f"SalienceOS_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                    mime="application/pdf", use_container_width=True,
-                )
-            except Exception as pdf_err:
-                st.error(f"PDF failed: {pdf_err}")
-        else:
-            st.button("↓  Export PDF", disabled=True, use_container_width=True)
-
-    with act3:
-        if chart_locked:
-            st.button("✓  Synced to FHIR", disabled=True, use_container_width=True)
-        else:
-            if st.button("Sign & Push to EHR", type="primary", use_container_width=True):
-                # Save the edited version back to session state before locking
-                st.session_state.soap_note = edited_soap
-                with st.spinner("Synchronising with HL7/FHIR endpoint…"):
-                    time.sleep(2.0)
-                st.session_state.chart_locked = True
-                st.success("Chart signed and pushed to simulated EHR database.")
-                st.balloons()
-                st.rerun()
+        with act3:
+            if chart_locked:
+                st.button("✓  Synced to FHIR", disabled=True, use_container_width=True)
+            else:
+                if st.button("Sign & Push to EHR", type="primary", use_container_width=True):
+                    st.session_state.soap_note = edited_soap  # persist edits before locking
+                    with st.spinner("Synchronising with HL7/FHIR endpoint…"):
+                        time.sleep(2.0)
+                    st.session_state.chart_locked = True
+                    st.success("Chart signed and pushed to simulated EHR database.")
+                    st.balloons()
+                    st.rerun()
 
     # ── Tab 5: Explainability ──────────────────────────────────────
     # BUG-C FIX: this block was de-dented outside the `if transcript:` block
