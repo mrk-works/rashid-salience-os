@@ -937,32 +937,40 @@ if st.session_state.transcript:
     ])
 
     # ── Tab 1: Clinical Signals ────────────────────────────────────
-    with output_tabs[0]:
-    if st.session_state.salience_map:
-        for item in sorted(st.session_state.salience_map,
-                           key=lambda x: x.get("salience_score", 0), reverse=True):
-            score    = float(item.get("salience_score", 0.0))
-            entity   = str(item.get("entity", ""))
-            category = str(item.get("category", ""))
-            pct      = int(score * 100)
-            if score >= 0.85:   ring_cls, bc = "score-critical", "var(--tier-critical)"
-            elif score >= 0.70: ring_cls, bc = "score-high",     "var(--tier-high)"
-            elif score >= 0.50: ring_cls, bc = "score-medium",   "var(--tier-medium)"
-            else:               ring_cls, bc = "score-low",      "var(--tier-low)"
-            st.markdown(f"""
-            <div class="signal-row">
-              <div class="signal-score-ring {ring_cls}">{pct}</div>
-              <div class="signal-body">
-                <div class="signal-entity">{entity}</div>
-                <span class="signal-category-chip">{category}</span>
-                <div class="signal-bar-track" style="margin-top:8px">
-                  <div class="signal-bar-fill" style="width:{pct}%;background:{bc}"></div>
+with output_tabs[0]:
+        if st.session_state.salience_map:
+            # BUG-C FIX: for loop is now correctly inside the if block
+            for item in sorted(st.session_state.salience_map,
+                               key=lambda x: x.get("salience_score", 0), reverse=True):
+                score    = float(item.get("salience_score", 0.0))
+                entity   = str(item.get("entity", ""))
+                category = str(item.get("category", ""))
+                reasoning = str(item.get("reasoning_context", ""))  # restored
+                pct      = int(score * 100)
+                if score >= 0.85:   ring_cls, bc = "score-critical", "var(--tier-critical)"
+                elif score >= 0.70: ring_cls, bc = "score-high",     "var(--tier-high)"
+                elif score >= 0.50: ring_cls, bc = "score-medium",   "var(--tier-medium)"
+                else:               ring_cls, bc = "score-low",      "var(--tier-low)"
+                st.markdown(f"""
+                <div class="signal-row">
+                  <div class="signal-score-ring {ring_cls}">{pct}</div>
+                  <div class="signal-body">
+                    <div class="signal-entity">{entity}</div>
+                    <span class="signal-category-chip">{category}</span>
+                    <div class="signal-reasoning">{reasoning}</div>
+                    <div class="signal-bar-track">
+                      <div class="signal-bar-fill" style="width:{pct}%;background:{bc}"></div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+        else:
+            # BUG-C FIX: else is now correctly paired with the if block above
+            st.markdown("""
+            <div class="empty-state">
+              <div class="empty-state-icon">◎</div>
+              <div class="empty-state-title">No signals extracted</div>
+            </div>""", unsafe_allow_html=True)
 
     # ── Tab 2: Safety Flags ────────────────────────────────────────
     with output_tabs[1]:
