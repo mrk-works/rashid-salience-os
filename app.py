@@ -937,7 +937,7 @@ if st.session_state.transcript:
     ])
 
     # ── Tab 1: Clinical Signals ────────────────────────────────────
-with output_tabs[0]:
+    with output_tabs[0]:
         if st.session_state.salience_map:
             # BUG-C FIX: for loop is now correctly inside the if block
             for item in sorted(st.session_state.salience_map,
