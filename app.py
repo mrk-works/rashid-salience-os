@@ -1053,10 +1053,9 @@ if st.session_state.transcript:
         "Clinical Signals", "Safety Flags", "Next Steps", "SOAP Note", "Explainability",
     ])
 
-    # Tab 1 — Clinical Signals
     with output_tabs[0]:
-        if st.session_state.salience_map:
-            for item in sorted(st.session_state.salience_map,
+    if st.session_state.salience_map:
+        for item in sorted(st.session_state.salience_map,
                            key=lambda x: x.get("salience_score", 0), reverse=True):
             score    = float(item.get("salience_score", 0.0))
             entity   = str(item.get("entity", ""))
@@ -1079,7 +1078,8 @@ if st.session_state.transcript:
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)    # Tab 2 — Safety Flags
+        st.markdown('<div class="empty-state"><div class="empty-state-icon">◎</div><div class="empty-state-title">No signals extracted</div></div>', unsafe_allow_html=True)    
+        # Tab 2 — Safety Flags
     with output_tabs[1]:
         if st.session_state.flags:
             for alert in st.session_state.flags:
