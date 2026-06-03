@@ -539,6 +539,122 @@ with hcol2:
     with st.popover("⚙ Settings", use_container_width=True):
         render_control_center()
 
+# ── Theme token injection ─────────────────────────────────────────────
+_active_theme = st.session_state.get("sc_theme", "Dark")
+
+_LIGHT_TOKENS = """
+<style>
+.stApp {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
+    radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
+    radial-gradient(circle at 72% 92%, rgba(139,92,246,0.03) 0%, transparent 28%),
+    #F0F4F8 !important;
+}
+:root {
+  --bg-base:        #F0F4F8;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #F7F9FC;
+  --bg-hover:       rgba(0,0,0,0.04);
+  --border-subtle:  rgba(0,0,0,0.07);
+  --border-default: rgba(0,0,0,0.12);
+  --border-strong:  rgba(0,0,0,0.20);
+  --text-primary:   #0D1117;
+  --text-secondary: #3D4A5C;
+  --text-muted:     #7A8799;
+  --accent-blue:    #1D6FE8;
+  --accent-blue-dim:#1558C0;
+  --accent-emerald: #0D9065;
+  --accent-amber:   #C07800;
+  --accent-red:     #C8282B;
+  --accent-violet:  #6B3FD4;
+  --accent-cyan:    #0592A8;
+  --tier-critical:  #C8282B;
+  --tier-high:      #C07800;
+  --tier-medium:    #1D6FE8;
+  --tier-low:       #0D9065;
+}
+html, body, [class*="css"] { color: var(--text-primary) !important; }
+.stApp, .block-container { background-color: var(--bg-base) !important; }
+p { color: var(--text-secondary) !important; }
+.soap-viewer {
+  background: #FFFFFF !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: var(--text-primary) !important;
+}
+.soap-body-p { color: var(--text-secondary) !important; }
+.stTextInput > div > div > input,
+.stTextArea  > div > div > textarea {
+  background: #FFFFFF !important;
+  border-color: rgba(0,0,0,0.15) !important;
+  color: var(--text-primary) !important;
+}
+.stButton > button[kind="secondary"],
+.stButton > button:not([kind]) {
+  background: #FFFFFF !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(0,0,0,0.15) !important;
+}
+.stDownloadButton > button {
+  background: #FFFFFF !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(0,0,0,0.15) !important;
+}
+[data-testid="stSegmentedControl"] > div {
+  background: #FFFFFF !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
+[data-testid="stSegmentedControl"] button { color: var(--text-secondary) !important; }
+[data-testid="stPills"] button { background: #FFFFFF !important; border-color: rgba(0,0,0,0.12) !important; color: var(--text-secondary) !important; }
+[data-testid="stPopover"] > div { background: #FFFFFF !important; border-color: rgba(0,0,0,0.10) !important; box-shadow: 0 16px 48px rgba(0,0,0,0.12) !important; }
+section[data-testid="stSidebar"] { background: #FFFFFF !important; }
+.stTabs [data-baseweb="tab-list"] { border-bottom-color: rgba(0,0,0,0.10) !important; }
+.stTabs [data-baseweb="tab"] { color: var(--text-muted) !important; }
+.stTabs [aria-selected="true"] { color: var(--text-primary) !important; }
+.flag-item { color: #9B1C1C !important; background: rgba(200,40,43,0.06) !important; }
+.step-item { color: #1E429F !important; background: rgba(29,111,232,0.06) !important; }
+.signal-reasoning { color: var(--text-secondary) !important; }
+.urgency-bar.CRITICAL { background: rgba(200,40,43,0.06) !important; }
+.urgency-bar.HIGH     { background: rgba(192,120,0,0.06) !important; }
+.urgency-bar.MEDIUM   { background: rgba(29,111,232,0.06) !important; }
+.urgency-bar.LOW      { background: rgba(13,144,101,0.06) !important; }
+.os-header { border-bottom-color: rgba(0,0,0,0.08) !important; }
+.section-label::after { background: rgba(0,0,0,0.08) !important; }
+.signal-row { border-bottom-color: rgba(0,0,0,0.07) !important; }
+.signal-bar-track { background: rgba(0,0,0,0.07) !important; }
+</style>
+"""
+
+_SYSTEM_CHECK = """
+<style>
+@media (prefers-color-scheme: light) {
+  .stApp {
+    background:
+      radial-gradient(circle at 88% 12%, rgba(59,130,246,0.06) 0%, transparent 38%),
+      radial-gradient(circle at 8%  52%, rgba(6,182,212,0.04)  0%, transparent 30%),
+      #F0F4F8 !important;
+  }
+  :root {
+    --bg-base: #F0F4F8; --bg-surface: #FFFFFF; --bg-elevated: #F7F9FC;
+    --bg-hover: rgba(0,0,0,0.04); --border-subtle: rgba(0,0,0,0.07);
+    --border-default: rgba(0,0,0,0.12); --border-strong: rgba(0,0,0,0.20);
+    --text-primary: #0D1117; --text-secondary: #3D4A5C; --text-muted: #7A8799;
+    --accent-blue: #1D6FE8; --accent-blue-dim: #1558C0;
+    --tier-critical: #C8282B; --tier-high: #C07800;
+    --tier-medium: #1D6FE8; --tier-low: #0D9065;
+  }
+  html, body, [class*="css"] { color: #0D1117 !important; }
+  p { color: #3D4A5C !important; }
+}
+</style>
+"""
+
+if _active_theme == "Light":
+    st.markdown(_LIGHT_TOKENS, unsafe_allow_html=True)
+elif _active_theme == "System":
+    st.markdown(_SYSTEM_CHECK, unsafe_allow_html=True)
+# Dark is the default — no injection needed
+
 
 # =====================================================================
 # INPUT WORKSPACE
