@@ -45,8 +45,6 @@ try:
 except ImportError:
     FPDF_AVAILABLE = False
 
-from demo_cases import DEMO_CASES
-
 # =====================================================================
 # CONSTANTS
 # =====================================================================
@@ -82,6 +80,412 @@ DEMO_CASE_OPTIONS = {
     "🚑  Emergency — Polytrauma (CRITICAL)":       "emergency",
 }
 
+# =====================================================================
+# DEMO CASES — inlined (no external file dependency)
+# All cases are synthetic. No real patient data.
+# =====================================================================
+DEMO_CASES = {
+    "cardiology": {
+        "label": "Acute STEMI",
+        "specialty": "Cardiology",
+        "sc_specialty": "Cardiology",
+        "patient_ref": "DEMO-001 · Acute Anterior STEMI",
+        "pipeline_time": 3.8,
+        "transcript": (
+            "63-year-old male presenting with 45-minute history of crushing substernal "
+            "chest pain radiating to the left arm and jaw, rated 9/10. Associated diaphoresis, "
+            "nausea, and dyspnoea. Similar milder episodes in the preceding 3 weeks. "
+            "PMH: hypertension (amlodipine 5mg), type 2 diabetes (metformin 1g BD). "
+            "FH: paternal MI at age 58. Current medications: atorvastatin 20mg. "
+            "BP 158/94 mmHg, HR 112 bpm (regular), RR 22/min. Diaphoretic on presentation."
+        ),
+        "classification": {
+            "urgency_tier": "CRITICAL",
+            "primary_clinical_trigger": (
+                "Acute anterior STEMI — crushing chest pain >20 minutes with radiation, "
+                "diaphoresis, and cardiovascular risk factors. Immediate reperfusion indicated."
+            ),
+        },
+        "salience_map": [
+            {"entity": "Crushing chest pain (45 min)", "category": "Symptom", "salience_score": 0.98,
+             "reasoning_context": "Cardinal ACS symptom. Duration >20 min with typical quality. Drives STEMI protocol activation."},
+            {"entity": "Left arm and jaw radiation", "category": "Symptom", "salience_score": 0.94,
+             "reasoning_context": "Classic referred pain via C8-T1 dermatomes. Significantly elevates pre-test probability for MI."},
+            {"entity": "Diaphoresis", "category": "Symptom", "salience_score": 0.91,
+             "reasoning_context": "Autonomic activation indicating haemodynamic stress. Consistent with significant myocardial event."},
+            {"entity": "Tachycardia HR 112 bpm", "category": "Vital Sign", "salience_score": 0.88,
+             "reasoning_context": "Compensatory tachycardia. Continuous monitoring required."},
+            {"entity": "Hypertension (amlodipine 5mg)", "category": "Medical History", "salience_score": 0.82,
+             "reasoning_context": "Established cardiovascular risk factor."},
+            {"entity": "Prior episodes (3 weeks)", "category": "Duration", "salience_score": 0.79,
+             "reasoning_context": "Antecedent unstable angina pattern — evolving coronary disease."},
+            {"entity": "Paternal MI at 58", "category": "Medical History", "salience_score": 0.74,
+             "reasoning_context": "Premature family history of CAD — strong independent risk factor."},
+            {"entity": "Type 2 Diabetes (metformin 1g BD)", "category": "Medication", "salience_score": 0.71,
+             "reasoning_context": "CAD risk multiplier. Metformin must be withheld if contrast angiography planned."},
+        ],
+        "flags": [
+            "STEMI must be excluded immediately — obtain 12-lead ECG within 10 minutes of arrival",
+            "Haemodynamic instability risk: tachycardia + diaphoresis — continuous monitoring required",
+            "Prior unstable angina pattern — do not discharge without full workup",
+            "Metformin: withhold if contrast imaging (coronary angiography) is anticipated",
+        ],
+        "next_steps": [
+            "12-lead ECG stat — repeat at 15 and 30 minutes",
+            "High-sensitivity troponin I/T at 0h and 3h",
+            "Aspirin 300mg PO stat + ticagrelor 180mg if no contraindication",
+            "Activate cath lab if STEMI confirmed — target door-to-balloon <90 minutes",
+            "IV access x2, continuous cardiac monitoring, O2 if SpO2 <94%",
+            "Heparin IV per ACS weight-based protocol",
+            "Cardiology registrar + interventional cardiologist notification immediately",
+        ],
+        "soap_note": """### Subjective:
+63-year-old male presenting with a 45-minute history of severe (9/10) crushing substernal chest pain with radiation to the left arm and jaw, associated with diaphoresis, nausea, and dyspnoea. Similar milder episodes in the preceding 3 weeks. PMH: hypertension (amlodipine 5mg), type 2 diabetes (metformin 1g BD). FH: paternal MI at age 58. Medications: atorvastatin 20mg, amlodipine 5mg, metformin 1g BD.
+
+### Objective:
+BP 158/94 mmHg, HR 112 bpm (regular), RR 22/min. Diaphoretic. CVS: tachycardic, S1/S2 present, no murmurs. Respiratory: tachypnoeic, CTAB bilaterally. Abdomen: soft, non-tender. Neuro: A&Ox3, GCS 15.
+
+### Assessment:
+High-probability acute coronary syndrome — STEMI vs NSTEMI pending ECG and troponin. Significant cardiovascular risk profile. Haemodynamically stressed but currently compensated.
+
+### Plan:
+1. 12-lead ECG stat. 2. hs-Troponin 0h/3h. 3. Aspirin 300mg + ticagrelor 180mg PO. 4. If STEMI: activate cath lab, D2B <90 min, heparin protocol. 5. Withhold metformin if contrast planned. 6. Continuous monitoring. 7. Cardiology notification. 8. ICU/HDU bed.""",
+        "medications": [
+            {"drug": "Amlodipine", "dose": "5mg", "route": "PO", "frequency": "OD", "flag": None},
+            {"drug": "Metformin", "dose": "1g", "route": "PO", "frequency": "BD",
+             "flag": "WITHHOLD if contrast angiography planned — contrast-induced nephropathy risk"},
+            {"drug": "Atorvastatin", "dose": "20mg", "route": "PO", "frequency": "OD", "flag": None},
+            {"drug": "Aspirin", "dose": "300mg", "route": "PO", "frequency": "Stat", "flag": None},
+        ],
+        "device_suggestions": [
+            {"tier": 1, "name": "Continuous 12-lead ECG monitor", "evidence": "A",
+             "note": "Gold standard for STEMI monitoring and reperfusion assessment."},
+            {"tier": 1, "name": "Coronary angioplasty (PPCI)", "evidence": "A",
+             "note": "Primary PCI is gold standard for STEMI with D2B <90 min."},
+            {"tier": 2, "name": "Cardiac wearable (Zio Patch / AliveCor)", "evidence": "B",
+             "note": "Post-discharge arrhythmia monitoring."},
+        ],
+    },
+
+    "neurology": {
+        "label": "Acute Stroke",
+        "specialty": "Neurology",
+        "sc_specialty": "Neurology",
+        "patient_ref": "DEMO-002 · Acute Ischaemic Stroke",
+        "pipeline_time": 4.1,
+        "transcript": (
+            "72-year-old female brought by family. Sudden onset left-sided facial droop, "
+            "left arm and leg weakness, and slurred speech approximately 90 minutes ago. "
+            "Cannot raise left arm. Speech garbled. No loss of consciousness. "
+            "PMH: atrial fibrillation (not on anticoagulation), hypertension (perindopril 5mg), "
+            "hyperlipidaemia (rosuvastatin 10mg). Last known well 90 minutes ago. "
+            "BP 188/102 mmHg on arrival. No known allergies. "
+            "Medications: perindopril 5mg, rosuvastatin 10mg, bisoprolol 5mg."
+        ),
+        "classification": {
+            "urgency_tier": "CRITICAL",
+            "primary_clinical_trigger": (
+                "Acute ischaemic stroke — sudden onset unilateral weakness, facial droop, "
+                "and dysarthria within 90-minute window. Thrombolysis eligibility must be "
+                "assessed immediately."
+            ),
+        },
+        "salience_map": [
+            {"entity": "Sudden left-sided weakness (arm + leg)", "category": "Symptom", "salience_score": 0.97,
+             "reasoning_context": "Unilateral motor deficit — classic MCA territory stroke. Highest diagnostic priority."},
+            {"entity": "Left facial droop", "category": "Symptom", "salience_score": 0.95,
+             "reasoning_context": "Upper motor neuron VII palsy — consistent with hemispheric stroke."},
+            {"entity": "Dysarthria", "category": "Symptom", "salience_score": 0.92,
+             "reasoning_context": "Motor speech impairment. Increases NIHSS score."},
+            {"entity": "Onset 90 minutes ago", "category": "Duration", "salience_score": 0.96,
+             "reasoning_context": "Within 4.5-hour thrombolysis window. Time is brain — every 10-minute delay costs 1.9 million neurons."},
+            {"entity": "Atrial fibrillation (not anticoagulated)", "category": "Medical History", "salience_score": 0.93,
+             "reasoning_context": "Cardioembolic stroke most probable aetiology. Non-anticoagulated AF multiplies stroke risk x5."},
+            {"entity": "BP 188/102 mmHg", "category": "Vital Sign", "salience_score": 0.85,
+             "reasoning_context": "Permissive hypertension protocol applies. Do not lower unless >185/110 for tPA eligibility."},
+            {"entity": "Perindopril 5mg", "category": "Medication", "salience_score": 0.68,
+             "reasoning_context": "ACE inhibitor — hold for permissive hypertension unless BP exceeds tPA threshold."},
+        ],
+        "flags": [
+            "STROKE ALERT — activate stroke team immediately. Door-to-needle target <60 minutes",
+            "Within thrombolysis window (90 min) — assess tPA eligibility: BP, glucose, CT head",
+            "Atrial fibrillation without anticoagulation — high cardioembolic risk",
+            "BP 188/102 — do NOT lower unless >185/110 (tPA threshold) or haemorrhage confirmed",
+            "Non-contrast CT head URGENTLY to exclude haemorrhage before thrombolysis",
+        ],
+        "next_steps": [
+            "CT head non-contrast STAT — exclude haemorrhagic stroke before any intervention",
+            "NIHSS score assessment by stroke-trained clinician",
+            "Blood glucose, FBC, coagulation screen, renal function",
+            "If CT clear: alteplase 0.9mg/kg IV (max 90mg) — 10% bolus then 60 min infusion",
+            "CT angiography head + neck to assess for large vessel occlusion",
+            "Continuous BP monitoring — maintain <185/110 for tPA eligibility",
+            "Nil by mouth pending swallow assessment",
+            "AF anticoagulation plan (DOAC) once acute phase stable",
+        ],
+        "soap_note": """### Subjective:
+72-year-old female with sudden onset left-sided facial droop, left arm and leg weakness, and dysarthria approximately 90 minutes ago. No LOC. PMH: atrial fibrillation (not anticoagulated), hypertension (perindopril 5mg), hyperlipidaemia (rosuvastatin 10mg). Medications: perindopril 5mg, rosuvastatin 10mg, bisoprolol 5mg. Last known well 90 minutes prior.
+
+### Objective:
+BP 188/102 mmHg, HR 78 bpm (irregular — AF), RR 16/min, SpO2 96% on air. Alert, oriented to person only. Dysarthric — comprehension intact. Left facial droop (UMN pattern). Left arm power 2/5, left leg power 3/5. Right full power. Left plantar extensor. NIHSS estimated 12.
+
+### Assessment:
+Acute ischaemic stroke — right MCA territory. Cardioembolic aetiology likely given uncontrolled AF. Within thrombolysis window. LVO to exclude. Moderate stroke (NIHSS ~12).
+
+### Plan:
+1. CT head non-contrast STAT. 2. If haemorrhage excluded: alteplase eligibility assessment. 3. CTA head/neck for LVO. 4. BP protocol <185/110 for tPA. 5. NBM — swallow assessment. 6. Stroke unit admission. 7. AF anticoagulation plan post-acute. 8. Perindopril hold acutely.""",
+        "medications": [
+            {"drug": "Perindopril", "dose": "5mg", "route": "PO", "frequency": "OD",
+             "flag": "HOLD acutely — permissive hypertension protocol"},
+            {"drug": "Rosuvastatin", "dose": "10mg", "route": "PO", "frequency": "OD", "flag": None},
+            {"drug": "Bisoprolol", "dose": "5mg", "route": "PO", "frequency": "OD", "flag": None},
+            {"drug": "Alteplase", "dose": "0.9mg/kg IV max 90mg", "route": "IV", "frequency": "Once",
+             "flag": "Confirm haemorrhage excluded on CT BEFORE administration"},
+        ],
+        "device_suggestions": [
+            {"tier": 1, "name": "Mechanical thrombectomy (Stryker Trevo / Medtronic Solitaire)", "evidence": "A",
+             "note": "Gold standard for LVO. Eligible if NIHSS >=6 and LVO confirmed."},
+            {"tier": 2, "name": "Implantable cardiac monitor (Reveal LINQ)", "evidence": "A",
+             "note": "Paroxysmal AF detection for cryptogenic stroke workup."},
+        ],
+    },
+
+    "psychiatry": {
+        "label": "Major Depression",
+        "specialty": "Psychiatry",
+        "sc_specialty": "Psychiatry",
+        "patient_ref": "DEMO-003 · Major Depressive Episode",
+        "pipeline_time": 3.3,
+        "transcript": (
+            "34-year-old female referred by GP. Low mood for 6 months, progressively worsening. "
+            "Persistent sadness, anhedonia — has not painted in 4 months (previously her passion). "
+            "Sleep: initial and middle insomnia, waking at 3am. Appetite reduced, 8kg weight loss "
+            "over 3 months. Concentration poor — struggling at work as a teacher. "
+            "Passive suicidal ideation: 'I sometimes wish I wouldn't wake up' — no active plan, "
+            "no intent, no previous attempts. PMH: hypothyroidism (levothyroxine 50mcg). "
+            "Recently separated from 10-year relationship. Single parent, two children aged 6 and 9. "
+            "No alcohol, no substances. PHQ-9 score: 19 (severe)."
+        ),
+        "classification": {
+            "urgency_tier": "HIGH",
+            "primary_clinical_trigger": (
+                "Moderate-to-severe major depressive episode with passive suicidal ideation. "
+                "PHQ-9 score 19. Requires urgent psychiatric evaluation and safety planning."
+            ),
+        },
+        "salience_map": [
+            {"entity": "Passive suicidal ideation", "category": "Symptom", "salience_score": 0.96,
+             "reasoning_context": "Highest safety priority. 'I sometimes wish I wouldn't wake up' — passive ideation without plan. Requires Columbia C-SSRS, safety plan, and crisis contacts."},
+            {"entity": "PHQ-9 score 19 (severe)", "category": "Symptom", "salience_score": 0.93,
+             "reasoning_context": "Severe depression threshold. Consistent with clinical presentation. Indicates pharmacotherapy and psychotherapy combination."},
+            {"entity": "Anhedonia (4 months)", "category": "Symptom", "salience_score": 0.89,
+             "reasoning_context": "Core depressive symptom per DSM-5 Criterion A. Loss of meaningful activities."},
+            {"entity": "Insomnia (initial + middle)", "category": "Symptom", "salience_score": 0.84,
+             "reasoning_context": "Neurovegetative symptom. 3am waking pattern — middle insomnia associated with melancholic features."},
+            {"entity": "8kg weight loss (3 months)", "category": "Symptom", "salience_score": 0.82,
+             "reasoning_context": "Significant neurovegetative decline. Must exclude medical causes."},
+            {"entity": "Hypothyroidism (levothyroxine 50mcg)", "category": "Medication", "salience_score": 0.79,
+             "reasoning_context": "Hypothyroidism can cause or worsen depression. Check TSH — subtherapeutic dose may be contributing."},
+            {"entity": "Single parent, two dependent children", "category": "Medical History", "salience_score": 0.77,
+             "reasoning_context": "Child safeguarding consideration. Mother's functional decline impacts dependent children."},
+        ],
+        "flags": [
+            "SUICIDAL IDEATION — complete Columbia C-SSRS before patient leaves",
+            "Safety plan required: crisis contacts, means restriction, follow-up within 72 hours",
+            "Safeguarding: two dependent children aged 6 and 9 — assess parenting capacity",
+            "Hypothyroidism: check TSH — subtherapeutic levothyroxine can cause depressive symptoms",
+            "Weight loss 8kg in 3 months — exclude organic cause (thyroid panel, FBC, metabolic screen)",
+        ],
+        "next_steps": [
+            "Columbia C-SSRS suicide risk assessment — complete before patient leaves",
+            "Safety plan: crisis contacts, restrict access to means, follow-up within 72 hours",
+            "TSH + Free T4, FBC, metabolic panel, Vitamin D",
+            "Initiate sertraline 50mg OD (titrate to 100mg at 2 weeks if tolerated)",
+            "Refer to clinical psychology: CBT for depression (NICE first-line)",
+            "GP letter: urgent — PHQ-9 19, passive SI, safety plan in place",
+            "Document parenting capacity assessment",
+            "Review in 2 weeks — PHQ-9 repeat, medication tolerance, safety re-assessment",
+        ],
+        "soap_note": """### Subjective:
+34-year-old female with 6-month history of worsening low mood, anhedonia (no painting — 4 months), initial and middle insomnia (waking 3am), reduced appetite with 8kg weight loss over 3 months, poor concentration affecting work. Passive suicidal ideation: 'I sometimes wish I wouldn't wake up' — no plan, no intent, no previous attempts. PHQ-9: 19. PMH: hypothyroidism (levothyroxine 50mcg). Recent relationship separation. Single parent of two children (6 and 9). No alcohol, no substances.
+
+### Objective:
+Cooperative, tearful. Psychomotor slowing. No psychotic features. Affect: depressed, constricted. Columbia C-SSRS: ideation type 2 (passive wish to be dead), no plan, no intent. PHQ-9: 19/27.
+
+### Assessment:
+Major depressive episode, moderate-to-severe (DSM-5 criteria met). Passive suicidal ideation without plan. Contributing: hypothyroidism (dose adequacy unknown), significant psychosocial stressors. Child safeguarding considerations present.
+
+### Plan:
+1. Safety plan completed. 2. TSH/FT4/FBC. 3. Sertraline 50mg OD (100mg at 2 weeks). 4. Psychology referral: CBT. 5. GP urgent letter. 6. Parenting capacity documented — adequate at this time. 7. Sick leave 2 weeks. 8. Review in 2 weeks.""",
+        "medications": [
+            {"drug": "Levothyroxine", "dose": "50mcg", "route": "PO", "frequency": "OD",
+             "flag": "Check TSH — subtherapeutic dose may be contributing to depression"},
+            {"drug": "Sertraline", "dose": "50mg (then 100mg at 2 weeks)", "route": "PO", "frequency": "OD",
+             "flag": "Counsel: 2-4 week onset, initial anxiety possible. Review at 2 weeks."},
+        ],
+        "device_suggestions": [
+            {"tier": 1, "name": "Digital CBT platform (Wysa / SilverCloud)", "evidence": "B",
+             "note": "Adjunct to face-to-face CBT. Evidence for PHQ-9 reduction."},
+            {"tier": 2, "name": "Sleep tracking wearable (Oura Ring / Fitbit)", "evidence": "C",
+             "note": "Objective sleep monitoring to track insomnia treatment response."},
+        ],
+    },
+
+    "paediatrics": {
+        "label": "Febrile Convulsion",
+        "specialty": "Pediatrics",
+        "sc_specialty": "Pediatrics",
+        "patient_ref": "DEMO-004 · Febrile Convulsion",
+        "pipeline_time": 2.9,
+        "transcript": (
+            "18-month-old male brought by parents following witnessed tonic-clonic seizure at home. "
+            "Duration approximately 3 minutes, self-terminated. Full recovery within 10 minutes. "
+            "Preceded by fever — parents measured 39.2C rectally. Child unwell 2 days with "
+            "runny nose and reduced appetite — viral URTI. No previous seizure history. "
+            "Normal development. Immunisations up to date. No family history of epilepsy. "
+            "No meningism signs. Child now alert, crying, interacting with mother. "
+            "Temperature 38.8C, HR 148 bpm, RR 34/min, SpO2 98% on air. No medications. No allergies."
+        ),
+        "classification": {
+            "urgency_tier": "HIGH",
+            "primary_clinical_trigger": (
+                "Simple febrile convulsion in 18-month-old. Post-ictal period resolved. "
+                "Must exclude meningitis and identify fever source."
+            ),
+        },
+        "salience_map": [
+            {"entity": "Tonic-clonic seizure (3 minutes)", "category": "Symptom", "salience_score": 0.95,
+             "reasoning_context": "Febrile convulsion — most common seizure cause in this age group. Duration <5 min, self-terminating — consistent with simple febrile convulsion."},
+            {"entity": "Temperature 39.2C (febrile)", "category": "Vital Sign", "salience_score": 0.91,
+             "reasoning_context": "Precipitating fever. Rate of fever rise more important than absolute temperature."},
+            {"entity": "Full recovery within 10 minutes", "category": "Symptom", "salience_score": 0.87,
+             "reasoning_context": "Complete return to baseline — reassuring. Prolonged post-ictal state raises concern for alternative diagnosis."},
+            {"entity": "No meningism signs", "category": "Symptom", "salience_score": 0.85,
+             "reasoning_context": "Reduces probability of bacterial meningitis. Cannot be excluded on clinical grounds alone in this age group."},
+            {"entity": "2-day URTI symptoms", "category": "Medical History", "salience_score": 0.78,
+             "reasoning_context": "Probable fever source — viral aetiology most likely."},
+            {"entity": "First seizure, no family history", "category": "Medical History", "salience_score": 0.72,
+             "reasoning_context": "First presentation. Recurrence risk: 30% in subsequent febrile illness. Counselling required."},
+        ],
+        "flags": [
+            "Exclude bacterial meningitis — LP if any clinical concern (bulging fontanelle, petechiae, altered GCS, age <12 months)",
+            "Simple febrile convulsion criteria met: single, generalised, <15 min, full recovery",
+            "Recurrence counselling required: 30% risk with subsequent febrile illness",
+            "Antipyretics for comfort — do NOT prevent seizure recurrence",
+        ],
+        "next_steps": [
+            "Full neurological examination — no focal deficit, no papilloedema",
+            "Identify fever source: throat, ears (otoscopy), urine dip",
+            "Paracetamol 15mg/kg PO/PR for fever and comfort",
+            "Observe minimum 4-6 hours post-seizure in ED",
+            "Parental counselling: seizure first aid, when to call emergency services (>5 minutes)",
+            "Discharge with written information sheet on febrile convulsions",
+            "Paediatric neurology referral if: complex features, >3 febrile convulsions",
+        ],
+        "soap_note": """### Subjective:
+18-month-old male following witnessed generalised tonic-clonic seizure lasting approximately 3 minutes, self-terminated. Full recovery within 10 minutes. Preceded by fever (39.2C rectal). 2-day history of viral URTI. No previous seizure history. Normal development. Immunisations up to date. No family history of epilepsy. No medications. No allergies.
+
+### Objective:
+T 38.8C, HR 148 bpm, RR 34/min, SpO2 98% on air. Weight 11.2kg. Alert, crying, interacting with mother. No meningism. Fontanelle flat. No rash. ENT: clear rhinorrhoea, mildly erythematous oropharynx. Chest clear. Neuro: no focal deficit.
+
+### Assessment:
+Simple febrile convulsion — all criteria met. Fever source: viral URTI most probable. Bacterial meningitis clinically unlikely. No indication for LP at this time.
+
+### Plan:
+1. Paracetamol 15mg/kg 6-hourly PRN. 2. Urine dip. 3. Observe 4-6 hours. 4. Parental seizure first aid counselling. 5. Discharge when afebrile trend. 6. GP follow-up 48 hours. 7. Return to ED if: seizure >5 min, multiple seizures, rash, altered consciousness.""",
+        "medications": [
+            {"drug": "Paracetamol", "dose": "15mg/kg", "route": "PO/PR", "frequency": "6-hourly PRN",
+             "flag": None},
+        ],
+        "device_suggestions": [
+            {"tier": 1, "name": "Digital thermometer (temporal/tympanic)", "evidence": "A",
+             "note": "For home fever monitoring. Parents need threshold guidance for seeking care."},
+            {"tier": 2, "name": "Seizure detection wearable (Embrace2)", "evidence": "B",
+             "note": "For recurrent cases only — parental anxiety management."},
+        ],
+    },
+
+    "emergency": {
+        "label": "Polytrauma",
+        "specialty": "Emergency",
+        "sc_specialty": "Emergency",
+        "patient_ref": "DEMO-005 · Polytrauma Triage",
+        "pipeline_time": 4.6,
+        "transcript": (
+            "28-year-old male, MVA — restrained driver, high-speed collision, airbag deployed. "
+            "GCS 13 at scene, now GCS 14 on arrival. Severe chest pain right side, abdominal pain, "
+            "right thigh pain. Visible deformity right femur. BP 92/60 mmHg, HR 124 bpm, "
+            "RR 26/min, SpO2 93% on 15L non-rebreather. Trachea deviated to the LEFT. "
+            "Breath sounds absent right side. Abdomen tender, guarding right upper quadrant. "
+            "Pelvis stable. Right thigh swelling and deformity — suspected closed femur fracture. "
+            "FAST scan positive: free fluid Morison's pouch and pelvis. "
+            "IV access x2, 1L crystalloid given at scene. Unknown allergies. Blood type unknown."
+        ),
+        "classification": {
+            "urgency_tier": "CRITICAL",
+            "primary_clinical_trigger": (
+                "Polytrauma with tension pneumothorax, haemodynamic instability, "
+                "positive FAST scan, and femur fracture. Immediate surgical intervention required."
+            ),
+        },
+        "salience_map": [
+            {"entity": "Tracheal deviation LEFT + absent right breath sounds", "category": "Symptom", "salience_score": 0.99,
+             "reasoning_context": "TENSION PNEUMOTHORAX — immediate needle decompression. Do NOT wait for imaging. 2nd ICS MCL right side."},
+            {"entity": "Haemodynamic instability (BP 92/60, HR 124)", "category": "Vital Sign", "salience_score": 0.97,
+             "reasoning_context": "Haemorrhagic shock Class III. Sources: haemothorax, intra-abdominal, femur fracture. Immediate haemorrhage control."},
+            {"entity": "FAST positive — free fluid Morison's pouch and pelvis", "category": "Symptom", "salience_score": 0.96,
+             "reasoning_context": "Intra-abdominal haemorrhage confirmed. Haemodynamic instability = surgical emergency — damage control laparotomy."},
+            {"entity": "SpO2 93% on 15L NRB", "category": "Vital Sign", "salience_score": 0.94,
+             "reasoning_context": "Significant hypoxaemia despite high-flow O2 — consistent with tension pneumothorax and haemothorax."},
+            {"entity": "Right femur fracture (closed)", "category": "Symptom", "salience_score": 0.88,
+             "reasoning_context": "Closed femur fracture causes 1000-1500ml blood loss. Contributes to shock. Traction splint to temporise."},
+            {"entity": "GCS 14 (was 13 at scene)", "category": "Vital Sign", "salience_score": 0.83,
+             "reasoning_context": "Improving GCS. TBI cannot be excluded. CT head required post-stabilisation."},
+        ],
+        "flags": [
+            "TENSION PNEUMOTHORAX — immediate needle decompression RIGHT 2nd ICS MCL. Do NOT await CXR",
+            "HAEMORRHAGIC SHOCK Class III — activate massive transfusion protocol: 1:1:1 pRBC:FFP:platelets",
+            "FAST positive + haemodynamic instability — surgical team must be at bedside NOW",
+            "Blood type unknown — O-negative blood until group and screen result. Do NOT delay",
+            "Femur fracture: estimated 1000-1500ml blood loss from this source alone — traction splint",
+        ],
+        "next_steps": [
+            "IMMEDIATE: needle decompression RIGHT 2nd ICS midclavicular line",
+            "Activate massive transfusion protocol — O-negative pRBC, FFP, platelets 1:1:1",
+            "Formal chest drain RIGHT after needle decompression",
+            "Surgical team STAT — FAST positive + haemodynamic instability",
+            "Blood: group and screen, FBC, coagulation, metabolic panel, ABG, lactate",
+            "Traction splint right femur",
+            "Tranexamic acid 1g IV over 10 minutes (within 3 hours of injury)",
+            "CT trauma series when primary survey stable",
+        ],
+        "soap_note": """### Subjective:
+28-year-old male, restrained MVA driver, high-speed collision, airbag deployed. GCS 13 at scene, 14 on arrival. Right chest pain, abdominal pain, right thigh pain. Unknown medications. Unknown allergies.
+
+### Objective:
+BP 92/60 mmHg, HR 124 bpm, RR 26/min, SpO2 93% on 15L NRB. GCS 14 (E4V4M6). Trachea deviated LEFT. Absent breath sounds right — tension pneumothorax. Abdomen: RUQ tenderness, guarding. Pelvis stable. Right thigh: deformity, swelling. FAST: positive free fluid Morison's pouch and pelvis.
+
+### Assessment:
+Polytrauma: (1) Tension pneumothorax right — immediate decompression. (2) Haemorrhagic shock Class III — intra-abdominal haemorrhage + haemothorax + femur fracture. (3) Closed right femur fracture. (4) Possible TBI — CT post-stabilisation.
+
+### Plan:
+1. Needle decompression RIGHT 2nd ICS MCL NOW. 2. Formal chest drain. 3. MTP activation — O-neg blood. 4. Surgical team STAT. 5. Tranexamic acid 1g IV. 6. Traction splint femur. 7. CT trauma post-stabilisation. 8. Damage control laparotomy likely. 9. ICU post-operatively.""",
+        "medications": [
+            {"drug": "Tranexamic acid", "dose": "1g over 10 min then 1g over 8h", "route": "IV",
+             "frequency": "Stat", "flag": "Must be given within 3 hours of injury for efficacy"},
+            {"drug": "O-negative pRBC + FFP + Platelets", "dose": "1:1:1 ratio", "route": "IV",
+             "frequency": "MTP", "flag": "Do not delay for cross-match in haemodynamic instability"},
+        ],
+        "device_suggestions": [
+            {"tier": 1, "name": "Massive Transfusion Protocol activation system", "evidence": "A",
+             "note": "Automated MTP activation linked to blood bank."},
+            {"tier": 1, "name": "REBOA (Resuscitative Endovascular Balloon Occlusion)", "evidence": "B",
+             "note": "Adjunct haemorrhage control in haemodynamically unstable abdominal trauma."},
+            {"tier": 2, "name": "Intraosseous access device (EZ-IO)", "evidence": "A",
+             "note": "Rapid vascular access if peripheral IV fails in shocked patient."},
+        ],
+    },
+}
 
 # =====================================================================
 # PDF GENERATION
